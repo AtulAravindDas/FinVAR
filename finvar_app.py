@@ -27,7 +27,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown('<div class="big-title">FinVAR – Your financial assistant referee</div>', unsafe_allow_html=True)
 st.markdown(
     """
     <style>
