@@ -14,7 +14,7 @@ st.markdown(
     """
     <style>
     .stApp {
-        background-color: #f0f2f6;
+        background-color: #00008B;
         color: #1a1a1a;
     }
     .big-title {
@@ -28,6 +28,16 @@ st.markdown(
 )
 
 st.markdown('<div class="big-title">FinVAR – Your financial assistant referee</div>', unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    .stTextInput > div > div > input {
+        color: black !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 st.title("📊 FinVAR – Your financial assistant referee")
 
