@@ -10,7 +10,27 @@ Original file is located at
 import streamlit as st
 import yfinance as yf
 
-st.title("FinVAR-Your financial assistant referee – reviewing every ticker, flagging every risk.")
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f0f2f6;
+        color: #1a1a1a;
+    }
+    .big-title {
+        font-size: 48px;
+        font-weight: 800;
+        color: #00C49A;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.markdown('<div class="big-title">FinVAR – Your financial assistant referee</div>', unsafe_allow_html=True)
+
+st.title("📊 FinVAR – Your financial assistant referee")
+
 
 user_input=st.text_input("Enter the ticker name:")
 
