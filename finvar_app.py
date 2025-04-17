@@ -10,33 +10,6 @@ Original file is located at
 import streamlit as st
 import yfinance as yf
 
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: #00008B;
-        color: #1a1a1a;
-    }
-    .big-title {
-        font-size: 48px;
-        font-weight: 800;
-        color: #00C49A;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-    <style>
-    .stTextInput > div > div > input {
-        color: black !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 
 st.title("📊 FinVAR – Your financial assistant referee")
 
