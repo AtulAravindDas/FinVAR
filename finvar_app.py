@@ -11,7 +11,7 @@ import streamlit as st
 import yfinance as yf
 
 
-st.title("📊 FinVAR – Your financial assistant referee")
+st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 
 user_input=st.text_input("Enter the ticker name:")
