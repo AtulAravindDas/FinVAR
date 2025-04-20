@@ -37,9 +37,15 @@ if user_input:
     
     #st.subheader("📑 Income Statement")
     #st.dataframe(ticker.financials)
-
+    income_statement=ticker.financials
+    st.write(" Income statement obtained")
     #st.subheader("📊 Balance Sheet")
+    
     #st.dataframe(ticker.balance_sheet)
-
+    balance_sheet=ticker.balance_sheet
+    st.write(" Balance sheet obtained")
     #st.subheader("💰 Cash Flow")
     #st.dataframe(ticker.cashflow)'''
+    cash_flow_statement=ticker.cashflow
+    st.write(" Cash flow statement obtained")
+
