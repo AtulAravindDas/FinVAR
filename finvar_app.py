@@ -15,14 +15,26 @@ if user_input:
     st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
     st.write(f"**Description:** {info.get('longBusinessSummary', 'N/A')}")
 
-    price_data = ticker.history(period="1d")
-    if not price_data.empty:
-        latest_close = price_data['Close'].iloc[-1]
-        st.markdown(f"<h2 style='font-size:16px; color:#FFFFFF;'>💵 Latest Close: ${latest_close:.2f}</h2>", unsafe_allow_html=True)
-    else:
-        st.warning("Price data not available for today.")
+    current_price = info.get("currentPrice", "N/A")
+    prev_close = info.get("previousClose", "N/A")
 
-    # Display financials
+    if current_price != "N/A" and prev_close != "N/A":
+        change = current_price - prev_close
+        percent_change = (change / prev_close) * 100
+        color = "#00FF00" if change >= 0 else "#FF4C4C"
+        sign = "+" if change >= 0 else "-"
+        st.markdown(f"""
+            <div style="background-color:#1e1e1e; padding:20px; border-radius:10px;">
+                <h1 style='font-size:48px; color:white;'>${current_price:.2f} USD</h1>
+                <p style='font-size:20px; color:{color};'>
+                    {change:+.2f} ({percent_change:+.2f}%) today
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.warning("Stock price data not available.")
+
+    
     st.subheader("📑 Income Statement")
     st.dataframe(ticker.financials)
 
