@@ -23,7 +23,7 @@ if user_input:
     st.write(f"**Description:** {info.get('longBusinessSummary', 'N/A')}")
 
     price_data = ticker.history(period="1d")  # gets today’s data
-    st.write("Latest Close:", price_data['Close'].iloc[-1])
+    st.write("<h2 style='font-size:16px; color:#FFFFFF;'>Latest Close:", price_data['Close'].iloc[-1])
     
     st.subheader("Income Statement")
     st.dataframe(ticker.financials)
