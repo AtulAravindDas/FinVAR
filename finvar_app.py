@@ -20,7 +20,7 @@ if user_input:
 
     st.header("🏢 Company Overview")
     company_name = info.get('longName', 'N/A')
-    st.markdown(f"<h2 style='font-size:32px; color:#4CAF50;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
     st.write(f"**Description:** {info.get('longBusinessSummary', 'N/A')}")
 
     st.subheader("Income Statement")
