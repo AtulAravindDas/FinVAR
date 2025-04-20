@@ -10,18 +10,18 @@ Original file is located at
 import streamlit as st
 import yfinance as yf
 
-
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
-
-user_input=st.text_input("Enter the ticker name:")
+user_input = st.text_input("Enter the ticker name:")
 
 if user_input:
     ticker = yf.Ticker(user_input)
+    info = ticker.info  # ✅ Fetch the company info dictionary
+
     st.header("🏢 Company Overview")
     st.write(f"**Name:** {info.get('longName', 'N/A')}")
     st.write(f"**Description:** {info.get('longBusinessSummary', 'N/A')}")
-             
+
     st.subheader("Income Statement")
     st.dataframe(ticker.financials)
 
@@ -30,4 +30,3 @@ if user_input:
 
     st.subheader("Cash Flow")
     st.dataframe(ticker.cashflow)
-
