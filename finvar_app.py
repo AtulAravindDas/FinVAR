@@ -16,13 +16,15 @@ user_input = st.text_input("Enter the ticker name:")
 
 if user_input:
     ticker = yf.Ticker(user_input)
-    info = ticker.info  # ✅ Fetch the company info dictionary
-
+    info = ticker.info 
     st.header("🏢 Company Overview")
     company_name = info.get('longName', 'N/A')
     st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
     st.write(f"**Description:** {info.get('longBusinessSummary', 'N/A')}")
 
+    price_data = ticker.history(period="1d")  # gets today’s data
+    print("Latest Close:", price_data['Close'].iloc[-1])
+    
     st.subheader("Income Statement")
     st.dataframe(ticker.financials)
 
