@@ -19,7 +19,7 @@ user_input=st.text_input("Enter the ticker name:")
 if user_input:
     ticker = yf.Ticker(user_input)
     st.header("🏢 Company Overview")
-    st.write(f"**Name:** {info.get('longName', 'N/A')}"
+    st.write(f"**Name:** {info.get('longName', 'N/A')}")
     st.write(f"**Description:** {info.get('longBusinessSummary', 'N/A')}")
              
     st.subheader("Income Statement")
