@@ -35,11 +35,11 @@ if user_input:
         st.warning("Stock price data not available.")
 
     
-    st.subheader("📑 Income Statement")
+    '''st.subheader("📑 Income Statement")
     st.dataframe(ticker.financials)
 
     st.subheader("📊 Balance Sheet")
     st.dataframe(ticker.balance_sheet)
 
     st.subheader("💰 Cash Flow")
-    st.dataframe(ticker.cashflow)
+    st.dataframe(ticker.cashflow)'''
