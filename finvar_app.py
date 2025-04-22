@@ -15,9 +15,10 @@ if user_input:
         company_name = info.get('longName', 'N/A')
         st.write(company_name)
 
-        description = info.get('longBusinessSummary', 'N/A')
-        st.subheader("📝 Company Description")
-        st.write(description)
+        if st.button("Get company description"):
+            description = info.get('longBusinessSummary', 'N/A')
+            st.subheader("📝 Company Description")
+            st.write(description)
 
     
         current_price = info.get("currentPrice", "N/A")
