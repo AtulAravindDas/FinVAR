@@ -18,7 +18,6 @@ if user_input:
         change = current_price - prev_close
         percent_change = (change / prev_close) * 100
         color = "#00FF00" if change >= 0 else "#FF4C4C"
-        sign = "+" if change >= 0 else "-"
         st.markdown(f"""
             <div style="background-color:#1e1e1e; padding:20px; border-radius:10px;">
                 <h1 style='font-size:48px; color:white;'>${current_price:.2f} USD</h1>
@@ -30,32 +29,27 @@ if user_input:
     else:
         st.warning("Stock price data not available.")
 
-    hist=ticker.history(period="1y")
+    hist = ticker.history(period="1y")
 
     if not hist.empty:
-        st.subheader("📊 Stock Price(last 12 months)")
+        st.subheader("📊 Stock Price (Last 12 Months)")
         st.line_chart(hist["Close"])
     else:
         st.warning("No data found for the given ticker.")
 
-    st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
+    st.subheader("🏢 Company Name")
+    st.write(company_name)
+
     description = info.get('longBusinessSummary', 'N/A')
-    st.markdown(f"<p style='font-size:16px; color:#DDDDDD;'>{description}</p>", unsafe_allow_html=True)
+    st.subheader("📝 Company Description")
+    st.write(description)
 
+    # Financial Statements
+    income_statement = ticker.financials
+    st.write("✅ Income statement obtained")
 
+    balance_sheet = ticker.balance_sheet
+    st.write("✅ Balance sheet obtained")
 
-    
-    #st.subheader("📑 Income Statement")
-    #st.dataframe(ticker.financials)
-    income_statement=ticker.financials
-    st.write(" Income statement obtained")
-    #st.subheader("📊 Balance Sheet")
-    
-    #st.dataframe(ticker.balance_sheet)
-    balance_sheet=ticker.balance_sheet
-    st.write(" Balance sheet obtained")
-    #st.subheader("💰 Cash Flow")
-    #st.dataframe(ticker.cashflow)'''
-    cash_flow_statement=ticker.cashflow
-    st.write(" Cash flow statement obtained")
-
+    cash_flow_statement = ticker.cashflow
+    st.write("✅ Cash flow statement obtained")
