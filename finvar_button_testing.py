@@ -1,5 +1,6 @@
 import yfinance as yf
 import streamlit as st
+import traceback
 
 # Page configuration
 st.set_page_config(page_title="FinVAR", layout="centered")
@@ -62,11 +63,10 @@ if user_input:
                 else:
                     st.warning("No historical price data found.")
 
-            
+            # Financial Statements
             income_statement = ticker.financials
             balance_sheet = ticker.balance_sheet
             cash_flow_statement = ticker.cashflow
-
 
             if income_statement is not None and not income_statement.empty:
                 st.success("✅ Income Statement loaded successfully!")
@@ -96,4 +96,6 @@ if user_input:
             if st.button("📊 Show Growth Ratios"):
                 st.info("Calculating Growth Ratios... (coming soon)")
 
-    except
+    except Exception as e:
+        st.error("🚨 Error fetching data:")
+        st.code(traceback.format_exc(), language='python')
