@@ -20,24 +20,23 @@ if user_input != st.session_state.last_ticker:
 if user_input:
     try:
         ticker = yf.Ticker(user_input)
-        info = ticker.info  # ⬅️ Ensure this is called before using description
+        info = ticker.info
 
         # 🏢 Company Name
         st.subheader("🏢 Company Name")
         company_name = info.get('longName', 'N/A')
         st.write(company_name)
 
-        # 📖 Description Toggle Button
+        # 🧠 Show/Hide Description Button comes RIGHT AFTER Name
         if st.button("📖 Show/Hide Company Description"):
             st.session_state.show_description = not st.session_state.show_description
 
-        # 📝 Description (after button)
         if st.session_state.show_description:
             st.subheader("📝 Company Description")
             description = info.get('longBusinessSummary', 'N/A')
             st.write(description)
 
-        # 💰 Price Info
+        # 💰 Stock Price Info
         current_price = info.get("currentPrice", "N/A")
         prev_close = info.get("previousClose", "N/A")
 
@@ -64,7 +63,7 @@ if user_input:
         else:
             st.warning("No historical data available.")
 
-        # 📄 Financial Statements (Optional display below)
+        # 📄 Financial Statements
         income_statement = ticker.financials
         balance_sheet = ticker.balance_sheet
         cash_flow_statement = ticker.cashflow
