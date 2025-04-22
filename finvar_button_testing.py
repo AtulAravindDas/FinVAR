@@ -61,8 +61,12 @@ if user_input:
             cash_flow_statement=ticker.cashflow
             st.success("✅ Company data loaded successfully!")
 
+            st.dataframe(income_statement)
             if st.button("Profitability Ratios"):
                 st.write("Calculate Profitability Ratios")
+
+            if st.button("Growth Ratios"):
+                st.write("Calculating Growth Ratios:")
 
     except Exception as e:
         st.error(f"Error fetching data: {e}")
