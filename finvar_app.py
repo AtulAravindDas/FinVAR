@@ -5,7 +5,7 @@ st.set_page_config(page_title="FinVAR", layout="centered")
 st.markdown(
     """
     <div style='text-align: center;'>
-        <img src='https://raw.githubusercontent.com/your-username/your-repo/main/FinVAR.png' width='300'>
+        <img src='FinVAR.png' width='300'>
     </div>
     """,
     unsafe_allow_html=True
