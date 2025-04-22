@@ -20,10 +20,10 @@ if user_input:
         st.write(company_name)
 
         # Description toggle button
-        if st.button("Show/Hide Description"):
-            st.subheader("📝 Company Description")
-            description = info.get('longBusinessSummary', 'N/A')
-            st.write(description)
+        
+        st.subheader("📝 Company Description")
+        description = info.get('longBusinessSummary', 'N/A')
+        st.write(description)
 
         # Current price section
         if st.button("Display Current Price 💰"):
