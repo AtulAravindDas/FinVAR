@@ -13,7 +13,9 @@ if user_input:
     st.header("🏢 Company Overview")
     company_name = info.get('longName', 'N/A')
     st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
-    st.write(f"**Description:\n** {info.get('longBusinessSummary', 'N/A')}")
+    description = info.get('longBusinessSummary', 'N/A')
+    st.markdown(f"<p style='font-size:16px; color:#DDDDDD;'>{description}</p>", unsafe_allow_html=True)
+
 
 
     current_price = info.get("currentPrice", "N/A")
