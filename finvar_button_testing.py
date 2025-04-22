@@ -17,18 +17,24 @@ if user_input:
         if not info or 'longName' not in info:
             st.error("❌ No company information found. Please enter a valid ticker.")
         else:
-            # Display company name
+            # Company Name
             company_name = info.get('longName', 'N/A')
             st.subheader("🏢 Company Name")
             st.write(company_name)
 
-            # Description toggle button
+            # Toggle Description
+            if "show_description" not in st.session_state:
+                st.session_state.show_description = False
+
             if st.button("Show/Hide Description"):
+                st.session_state.show_description = not st.session_state.show_description
+
+            if st.session_state.show_description:
                 st.subheader("📝 Company Description")
                 description = info.get('longBusinessSummary', 'N/A')
                 st.write(description)
 
-            # Current price section
+            # Stock Price Section
             if st.button("Display Current Price 💰"):
                 current_price = info.get("currentPrice", "N/A")
                 prev_close = info.get("previousClose", "N/A")
@@ -56,17 +62,23 @@ if user_input:
                 else:
                     st.warning("No historical price data found.")
 
-            income_statement=ticker.financials
-            balance_sheet=ticker.balance_sheet
-            cash_flow_statement=ticker.cashflow
-            st.success("✅ Company data loaded successfully!")
+            # Financial Statements
+            income_statement = ticker.financials
+            balance_sheet = ticker.balance_sheet
+            cash_flow_statement = ticker.cashflow
 
-            st.dataframe(income_statement)
-            if st.button("Profitability Ratios"):
-                st.write("Calculate Profitability Ratios")
+            if not income_statement.empty:
+                st.success("✅ Company financial data loaded successfully!")
+                st.subheader("📄 Income Statement")
+                st.dataframe(income_statement)
+            else:
+                st.warning("Income statement data not available.")
 
-            if st.button("Growth Ratios"):
-                st.write("Calculating Growth Ratios:")
+            # Buttons for Ratios
+            if st.button("📈 Show Profitability Ratios"):
+                st.info("Calculating Profitability Ratios... (coming soon)")
 
-    except Exception as e:
-        st.error(f"Error fetching data: {e}")
+            if st.button("📊 Show Growth Ratios"):
+                st.info("Calculating Growth Ratios... (coming soon)")
+
+    except
