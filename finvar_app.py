@@ -10,6 +10,13 @@ if user_input:
     ticker = yf.Ticker(user_input)
     info = ticker.info 
 
+    st.subheader("🏢 Company Name")
+    st.write(company_name)
+
+    description = info.get('longBusinessSummary', 'N/A')
+    st.subheader("📝 Company Description")
+    st.write(description)
+
     company_name = info.get('longName', 'N/A')
     current_price = info.get("currentPrice", "N/A")
     prev_close = info.get("previousClose", "N/A")
@@ -36,13 +43,6 @@ if user_input:
         st.line_chart(hist["Close"])
     else:
         st.warning("No data found for the given ticker.")
-
-    st.subheader("🏢 Company Name")
-    st.write(company_name)
-
-    description = info.get('longBusinessSummary', 'N/A')
-    st.subheader("📝 Company Description")
-    st.write(description)
 
     # Financial Statements
     income_statement = ticker.financials
