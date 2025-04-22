@@ -2,14 +2,6 @@ import streamlit as st
 import yfinance as yf
 
 st.set_page_config(page_title="FinVAR", layout="centered")
-st.markdown(
-    """
-    <div style='text-align: center;'>
-        <img src="FinVAR.png" width='300'>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name:")
