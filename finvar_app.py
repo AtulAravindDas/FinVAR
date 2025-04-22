@@ -5,18 +5,6 @@ st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
-
-# Init session state variables
-if "show_description" not in st.session_state:
-    st.session_state.show_description = False
-if "last_ticker" not in st.session_state:
-    st.session_state.last_ticker = ""
-
-# Reset toggle when ticker changes
-if user_input != st.session_state.last_ticker:
-    st.session_state.last_ticker = user_input
-    st.session_state.show_description = False
-
 if user_input:
     try:
         ticker = yf.Ticker(user_input)
@@ -28,13 +16,9 @@ if user_input:
         st.write(company_name)
 
         # 🧠 Show/Hide Description Button comes RIGHT AFTER Name
-        if st.button("📖 Show/Hide Company Description"):
-            st.session_state.show_description = not st.session_state.show_description
-
-        if st.session_state.show_description:
-            st.subheader("📝 Company Description")
-            description = info.get('longBusinessSummary', 'N/A')
-            st.write(description)
+        st.subheader("📝 Company Description")
+        description = info.get('longBusinessSummary', 'N/A')
+        st.write(description)
 
         # 💰 Stock Price Info
         current_price = info.get("currentPrice", "N/A")
