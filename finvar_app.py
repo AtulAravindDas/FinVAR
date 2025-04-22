@@ -6,6 +6,9 @@ st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
+# Move button OUTSIDE try block and track its state
+show_description = st.button("Get company description")
+
 if user_input:
     try:
         ticker = yf.Ticker(user_input)
@@ -15,7 +18,7 @@ if user_input:
         company_name = info.get('longName', 'N/A')
         st.write(company_name)
 
-        if st.button("Get company description"):
+        if show_description:
             description = info.get('longBusinessSummary', 'N/A')
             st.subheader("📝 Company Description")
             st.write(description)
