@@ -38,6 +38,20 @@ if user_input:
                     </div>""", unsafe_allow_html=True)
         else:
                 st.warning("Stock price data not available.")
+            
+        hist_data = ticker.history(period="1y")
+
+        if not hist_data.empty:
+            st.subheader("📈 Stock Price - Last 12 Months")
+            fig, ax = plt.subplots()
+            ax.plot(hist_data.index, hist_data['Close'], label='Close Price')
+            ax.set_xlabel("Date")
+            ax.set_ylabel("Price ($)")
+            ax.set_title(f"{user_input.upper()} Stock Price (1Y)")
+            ax.legend()
+            st.pyplot(fig)
+        else:
+            st.warning("No historical data available for this ticker.")
 
     except Exception as e:
         st.error(f"Error fetching data: {e}")
