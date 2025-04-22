@@ -1,27 +1,31 @@
 import yfinance as yf
 import streamlit as st
 
+# Page configuration
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
+# User input
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
+# Initialize ticker and display information
 if user_input:
     try:
         ticker = yf.Ticker(user_input)
-        info = ticker.info  
+        info = ticker.info
         company_name = info.get('longName', 'N/A')
 
+        # Display company name
         st.subheader("🏢 Company Name")
         st.write(company_name)
 
-        if st.button("Get description"):
+        # Description toggle button
+        if st.button("Show/Hide Description"):
             st.subheader("📝 Company Description")
             description = info.get('longBusinessSummary', 'N/A')
             st.write(description)
 
-            
-
+        # Current price section
         if st.button("Display Current Price 💰"):
             current_price = info.get("currentPrice", "N/A")
             prev_close = info.get("previousClose", "N/A")
