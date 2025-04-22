@@ -15,6 +15,13 @@ if user_input:
         st.subheader("🏢 Company Name")
         st.write(company_name)
 
+        if st.button("Get description"):
+            st.subheader("📝 Company Description")
+            description = info.get('longBusinessSummary', 'N/A')
+            st.write(description)
+
+            
+
         if st.button("Display Current Price 💰"):
             current_price = info.get("currentPrice", "N/A")
             prev_close = info.get("previousClose", "N/A")
