@@ -28,9 +28,18 @@ if user_input:
         company_name = info.get('longName', 'N/A')
         st.write(company_name)
 
+        if st.button("📖 Show/Hide Company Description"):
+            st.session_state.show_description = not st.session_state.show_description
+
+        if st.session_state.show_description:
+            st.subheader("📝 Company Description")
+            description = info.get('longBusinessSummary', 'N/A')
+            st.write(description)
+
+        
         current_price = info.get("currentPrice", "N/A")
         prev_close = info.get("previousClose", "N/A")
-
+        
         if current_price != "N/A" and prev_close != "N/A":
             change = current_price - prev_close
             percent_change = (change / prev_close) * 100
@@ -55,14 +64,7 @@ if user_input:
             st.warning("No historical data available.")
 
         # NOW show the description toggle button AFTER showing the basic info
-        if st.button("📖 Show/Hide Company Description"):
-            st.session_state.show_description = not st.session_state.show_description
-
-        if st.session_state.show_description:
-            st.subheader("📝 Company Description")
-            description = info.get('longBusinessSummary', 'N/A')
-            st.write(description)
-
+        
         # Optional: Financials if needed
         income_statement = ticker.financials
         balance_sheet = ticker.balance_sheet
