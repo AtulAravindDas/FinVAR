@@ -20,7 +20,6 @@ if user_input:
             st.subheader("📝 Company Description")
             st.write(description)
 
-    
         current_price = info.get("currentPrice", "N/A")
         prev_close = info.get("previousClose", "N/A")
 
@@ -46,17 +45,12 @@ if user_input:
         else:
             st.warning("No historical data available.")
 
-        
-        
-        
         # Financial Statements
         income_statement = ticker.financials
-        st.write("✅ Income statement obtained")
-
         balance_sheet = ticker.balance_sheet
-        st.write("✅ Balance sheet obtained")
-
         cash_flow_statement = ticker.cashflow
-        st.write("✅ Cash flow statement obtained")
 
+        st.success("✅ Financial statements obtained successfully")
 
+    except Exception as e:
+        st.error(f"❌ Error retrieving data: {e}")
