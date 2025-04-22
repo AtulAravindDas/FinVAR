@@ -52,5 +52,13 @@ if user_input:
                 else:
                     st.warning("No historical price data found.")
 
+            income_statement=ticker.financials
+            balance_sheet=ticker.balance_sheet
+            cash_flow_statement=ticker.cashflow
+            st.success("✅ Company data loaded successfully!")
+
+            if st.button("Profitability Ratios"):
+                st.write("Calculate Profitability Ratios")
+
     except Exception as e:
         st.error(f"Error fetching data: {e}")
