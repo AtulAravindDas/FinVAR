@@ -40,6 +40,14 @@ if user_input:
     else:
         st.warning("Stock price data not available.")
 
+    hist=ticker.history(period="1y")
+
+    if not hist.empty:
+        st.subheader("📊 Stock Price(last 12 months)")
+        st.line_chart(hist["Close"])
+    else:
+        st.warning("No data found for the given ticker.")
+
     
     #st.subheader("📑 Income Statement")
     #st.dataframe(ticker.financials)
