@@ -36,7 +36,7 @@ if user_input:
             color = "#00FF00" if change >= 0 else "#FF4C4C"
             st.markdown(f"""<div style="background-color:#1e1e1e; padding:20px; border-radius:10px;"><h1 style='font-size:48px; color:white;'>${current_price:.2f} USD</h1><p style='font-size:20px; color:{color};'>{change:+.2f} ({percent_change:+.2f}%) today</p>
                     </div>""", unsafe_allow_html=True)
-            else:
+        else:
                 st.warning("Stock price data not available.")
 
     except Exception as e:
