@@ -11,12 +11,6 @@ if user_input:
     info = ticker.info 
 
     company_name = info.get('longName', 'N/A')
-    st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
-    description = info.get('longBusinessSummary', 'N/A')
-    st.markdown(f"<p style='font-size:16px; color:#DDDDDD;'>{description}</p>", unsafe_allow_html=True)
-
-
-
     current_price = info.get("currentPrice", "N/A")
     prev_close = info.get("previousClose", "N/A")
 
@@ -43,6 +37,12 @@ if user_input:
         st.line_chart(hist["Close"])
     else:
         st.warning("No data found for the given ticker.")
+
+    st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
+    description = info.get('longBusinessSummary', 'N/A')
+    st.markdown(f"<p style='font-size:16px; color:#DDDDDD;'>{description}</p>", unsafe_allow_html=True)
+
+
 
     
     #st.subheader("📑 Income Statement")
