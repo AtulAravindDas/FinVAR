@@ -13,12 +13,7 @@ if user_input:
     st.header("🏢 Company Overview")
     company_name = info.get('longName', 'N/A')
     st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
-    
-    description = info.get('longBusinessSummary', 'N/A')
-
-    formatted_description = description.replace("; ", ";<br><br>").replace(". ", ".<br><br>")
-
-    st.markdown(f"""<div style="background-color:#1e1e1e; padding:20px; border-radius:10px; line-height:1.8; color:#FFFFFF; font-size:16px; max-width:850px;"><strong style="font-size:20px;">📝 Description:</strong><br><br>{formatted_description}</div>""", unsafe_allow_html=True)
+    st.write(f"**Description:** {info.get('longBusinessSummary', 'N/A')}")
 
 
     current_price = info.get("currentPrice", "N/A")
