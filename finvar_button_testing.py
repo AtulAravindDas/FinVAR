@@ -15,6 +15,9 @@ if user_input:
         info = ticker.info
         company_name = info.get('longName', 'N/A')
 
+        if not info:
+            st.error("❌ No company information found. Please enter a valid ticker.")
+
         # Display company name
         st.subheader("🏢 Company Name")
         st.write(company_name)
