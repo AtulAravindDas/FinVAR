@@ -10,7 +10,6 @@ if user_input:
     ticker = yf.Ticker(user_input)
     info = ticker.info 
 
-    st.header("🏢 Company Overview")
     company_name = info.get('longName', 'N/A')
     st.markdown(f"<h2 style='font-size:32px; color:#FFFFFF;'>🏢 Company Name: {company_name}</h2>", unsafe_allow_html=True)
     description = info.get('longBusinessSummary', 'N/A')
