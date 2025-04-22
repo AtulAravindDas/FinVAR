@@ -39,19 +39,13 @@ if user_input:
         else:
                 st.warning("Stock price data not available.")
             
-        hist_data = ticker.history(period="1y")
+        hist = ticker.history(period="1y")  # you can also use "12mo"
 
-        if not hist_data.empty:
-            st.subheader("📈 Stock Price - Last 12 Months")
-            fig, ax = plt.subplots()
-            ax.plot(hist_data.index, hist_data['Close'], label='Close Price')
-            ax.set_xlabel("Date")
-            ax.set_ylabel("Price ($)")
-            ax.set_title(f"{user_input.upper()} Stock Price (1Y)")
-            ax.legend()
-            st.pyplot(fig)
+        if not hist.empty:
+            st.subheader("📊 Stock Price (Last 12 Months)")
+            st.line_chart(hist["Close"])  # only closing prices
         else:
-            st.warning("No historical data available for this ticker.")
+            st.warning("No data found for the given ticker.")
 
     except Exception as e:
         st.error(f"Error fetching data: {e}")
