@@ -45,5 +45,12 @@ if user_input:
             else:
                 st.warning("Stock price data not available.")
 
+            hist = ticker.history(period="1y")
+            if not hist.empty:
+                st.subheader("📊 Stock Price (Last 12 Months)")
+                st.line_chart(hist["Close"])
+            else:
+                st.warning("No historical price data found.")
+
     except Exception as e:
         st.error(f"Error fetching data: {e}")
