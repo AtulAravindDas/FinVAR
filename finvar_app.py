@@ -14,9 +14,6 @@ if user_input:
     
     company_name = info.get('longName', 'N/A')
     st.write(company_name)
-    description = info.get('longBusinessSummary', 'N/A')
-    st.subheader("📝 Company Description")
-    st.write(description)
 
     current_price = info.get("currentPrice", "N/A")
     prev_close = info.get("previousClose", "N/A")
@@ -44,6 +41,13 @@ if user_input:
     else:
         st.warning("No data found for the given ticker.")
 
+
+    if st.button("Get Company Description"):
+        description = info.get('longBusinessSummary', 'N/A')
+        st.subheader("📝 Company Description")
+        st.write(description)
+    
+    
     # Financial Statements
     income_statement = ticker.financials
     st.write("✅ Income statement obtained")
