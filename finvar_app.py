@@ -11,13 +11,13 @@ if user_input:
     info = ticker.info 
 
     st.subheader("🏢 Company Name")
+    
+    company_name = info.get('longName', 'N/A')
     st.write(company_name)
-
     description = info.get('longBusinessSummary', 'N/A')
     st.subheader("📝 Company Description")
     st.write(description)
 
-    company_name = info.get('longName', 'N/A')
     current_price = info.get("currentPrice", "N/A")
     prev_close = info.get("previousClose", "N/A")
 
