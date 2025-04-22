@@ -1,8 +1,8 @@
 import streamlit as st
 import yfinance as yf
 
-st.image("FinVAR.png",width=300)
 st.set_page_config(page_title="FinVAR", layout="centered")
+st.image("FinVAR.png",width=300)
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name:")
