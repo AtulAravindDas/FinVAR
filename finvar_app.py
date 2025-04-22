@@ -6,8 +6,6 @@ st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
-# Move button OUTSIDE try block and track its state
-show_description = st.button("Get company description")
 
 if user_input:
     try:
@@ -42,6 +40,8 @@ if user_input:
             st.line_chart(hist["Close"])
         else:
             st.warning("No historical data available.")
+
+        show_description = st.button("Get company description")
 
         if show_description:
             description = info.get('longBusinessSummary', 'N/A')
