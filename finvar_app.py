@@ -6,6 +6,13 @@ st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
+# Reset description flag if user_input changes
+if "last_ticker" not in st.session_state:
+    st.session_state.last_ticker = ""
+
+if user_input != st.session_state.last_ticker:
+    st.session_state.show_description = False
+    st.session_state.last_ticker = user_input
 
 if user_input:
     try:
@@ -41,9 +48,10 @@ if user_input:
         else:
             st.warning("No historical data available.")
 
-        show_description = st.button("Get company description")
+        if st.button("Get company description"):
+            st.session_state.show_description = True
 
-        if show_description:
+        if st.session_state.show_description:
             description = info.get('longBusinessSummary', 'N/A')
             st.subheader("📝 Company Description")
             st.write(description)
