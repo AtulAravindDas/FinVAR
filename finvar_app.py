@@ -19,7 +19,10 @@ if user_input:
         st.subheader("🏢 Company Name")
         st.write(company_name)
 
-        # Description toggle button
+        st.subheader("📝 Company Description")
+        description = info.get('longBusinessSummary', 'N/A')
+        st.write(description)
+
         
         # Current price section
         
@@ -42,10 +45,6 @@ if user_input:
             st.line_chart(hist["Close"])  # only closing prices
         else:
             st.warning("No data found for the given ticker.")
-
-        st.subheader("📝 Company Description")
-        description = info.get('longBusinessSummary', 'N/A')
-        st.write(description)
 
 
     except Exception as e:
