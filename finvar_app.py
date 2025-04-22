@@ -17,29 +17,30 @@ if user_input != st.session_state.last_ticker:
     st.session_state.last_ticker = user_input
     st.session_state.show_description = False
 
-# Only run logic if user_input is provided
 if user_input:
     try:
         ticker = yf.Ticker(user_input)
-        info = ticker.info
+        info = ticker.info  # ⬅️ Ensure this is called before using description
 
-        # Show basic company info
+        # 🏢 Company Name
         st.subheader("🏢 Company Name")
         company_name = info.get('longName', 'N/A')
         st.write(company_name)
 
+        # 📖 Description Toggle Button
         if st.button("📖 Show/Hide Company Description"):
             st.session_state.show_description = not st.session_state.show_description
 
+        # 📝 Description (after button)
         if st.session_state.show_description:
             st.subheader("📝 Company Description")
             description = info.get('longBusinessSummary', 'N/A')
             st.write(description)
 
-        
+        # 💰 Price Info
         current_price = info.get("currentPrice", "N/A")
         prev_close = info.get("previousClose", "N/A")
-        
+
         if current_price != "N/A" and prev_close != "N/A":
             change = current_price - prev_close
             percent_change = (change / prev_close) * 100
@@ -55,7 +56,7 @@ if user_input:
         else:
             st.warning("Stock price data not available.")
 
-        # Show stock chart
+        # 📈 Stock Chart
         hist = ticker.history(period="1y")
         if not hist.empty:
             st.subheader("📊 Stock Price (Last 12 Months)")
@@ -63,9 +64,7 @@ if user_input:
         else:
             st.warning("No historical data available.")
 
-        # NOW show the description toggle button AFTER showing the basic info
-        
-        # Optional: Financials if needed
+        # 📄 Financial Statements (Optional display below)
         income_statement = ticker.financials
         balance_sheet = ticker.balance_sheet
         cash_flow_statement = ticker.cashflow
