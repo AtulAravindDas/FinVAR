@@ -62,17 +62,32 @@ if user_input:
                 else:
                     st.warning("No historical price data found.")
 
-            # Financial Statements
+            
             income_statement = ticker.financials
             balance_sheet = ticker.balance_sheet
             cash_flow_statement = ticker.cashflow
 
-            if not income_statement.empty:
-                st.success("✅ Company financial data loaded successfully!")
+
+            if income_statement is not None and not income_statement.empty:
+                st.success("✅ Income Statement loaded successfully!")
                 st.subheader("📄 Income Statement")
                 st.dataframe(income_statement)
             else:
-                st.warning("Income statement data not available.")
+                st.warning("Income statement not available.")
+
+            if balance_sheet is not None and not balance_sheet.empty:
+                st.success("✅ Balance Sheet loaded successfully!")
+                st.subheader("📄 Balance Sheet")
+                st.dataframe(balance_sheet)
+            else:
+                st.warning("Balance sheet not available.")
+
+            if cash_flow_statement is not None and not cash_flow_statement.empty:
+                st.success("✅ Cash Flow Statement loaded successfully!")
+                st.subheader("📄 Cash Flow Statement")
+                st.dataframe(cash_flow_statement)
+            else:
+                st.warning("Cash flow statement not available.")
 
             # Buttons for Ratios
             if st.button("📈 Show Profitability Ratios"):
