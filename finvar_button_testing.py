@@ -1,15 +1,13 @@
-import yfinance as yf
 import streamlit as st
-import traceback
+import yfinance as yf
+import pandas as pd
+import plotly.graph_objects as go
 
-# Page configuration
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
-# User input
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
-# Initialize ticker and display information
 if user_input:
     try:
         ticker = yf.Ticker(user_input)
@@ -18,24 +16,15 @@ if user_input:
         if not info or 'longName' not in info:
             st.error("❌ No company information found. Please enter a valid ticker.")
         else:
-            # Company Name
             company_name = info.get('longName', 'N/A')
             st.subheader("🏢 Company Name")
             st.write(company_name)
 
-            # Toggle Description
-            if "show_description" not in st.session_state:
-                st.session_state.show_description = False
-
             if st.button("Show/Hide Description"):
-                st.session_state.show_description = not st.session_state.show_description
-
-            if st.session_state.show_description:
                 st.subheader("📝 Company Description")
                 description = info.get('longBusinessSummary', 'N/A')
                 st.write(description)
 
-            # Stock Price Section
             if st.button("Display Current Price 💰"):
                 current_price = info.get("currentPrice", "N/A")
                 prev_close = info.get("previousClose", "N/A")
@@ -55,47 +44,125 @@ if user_input:
                 else:
                     st.warning("Stock price data not available.")
 
-                # Stock history chart
                 hist = ticker.history(period="1y")
                 if not hist.empty:
-                    st.subheader("📊 Stock Price (Last 12 Months)")
+                    st.subheader("📈 Stock Price (Last 12 Months)")
                     st.line_chart(hist["Close"])
                 else:
                     st.warning("No historical price data found.")
 
-            # Financial Statements
-            income_statement = ticker.financials
-            balance_sheet = ticker.balance_sheet
-            cash_flow_statement = ticker.cashflow
+            st.success("✅ Company data loaded successfully!")
 
-            if income_statement is not None and not income_statement.empty:
-                st.success("✅ Income Statement loaded successfully!")
-                st.subheader("📄 Income Statement")
-                st.dataframe(income_statement)
-            else:
-                st.warning("Income statement not available.")
+            if st.button("Profitability Ratios"):
+                st.subheader("📊 Profitability Ratios (2021–2024)")
 
-            if balance_sheet is not None and not balance_sheet.empty:
-                st.success("✅ Balance Sheet loaded successfully!")
-                st.subheader("📄 Balance Sheet")
-                st.dataframe(balance_sheet)
-            else:
-                st.warning("Balance sheet not available.")
+                income_statement = ticker.financials
+                balance_sheet = ticker.balance_sheet
+                cash_flow_statement = ticker.cashflow
+                years = income_statement.columns[::-1]
 
-            if cash_flow_statement is not None and not cash_flow_statement.empty:
-                st.success("✅ Cash Flow Statement loaded successfully!")
-                st.subheader("📄 Cash Flow Statement")
-                st.dataframe(cash_flow_statement)
-            else:
-                st.warning("Cash flow statement not available.")
+                data = {
+                    "Year": [],
+                    "ROE": [],
+                    "Gross Profit Margin": [],
+                    "Asset Turnover": [],
+                    "Financial Leverage": [],
+                    "Net Profit Margin": [],
+                    "EBITDA ($M)": [],
+                    "EBIT ($M)": [],
+                }
 
-            # Buttons for Ratios
-            if st.button("📈 Show Profitability Ratios"):
-                st.info("Calculating Profitability Ratios... (coming soon)")
+                for year in years:
+                    try:
+                        revenue = income_statement.loc["Total Revenue", year]
+                        cogs = income_statement.loc["Cost Of Revenue", year]
+                        net_income = income_statement.loc["Net Income", year]
+                        ebit = income_statement.loc["Operating Income", year]
+                        interest = income_statement.loc.get("Interest Expense", {}).get(year, 0)
+                        tax = income_statement.loc.get("Income Tax Expense", {}).get(year, 0)
+                        depreciation = cash_flow_statement.loc.get("Depreciation", {}).get(year, 0)
+                        amortization = cash_flow_statement.loc.get("Amortization", {}).get(year, 0)
+                        da = depreciation + amortization
 
-            if st.button("📊 Show Growth Ratios"):
-                st.info("Calculating Growth Ratios... (coming soon)")
+                        total_assets = balance_sheet.loc["Total Assets", year]
+                        equity = balance_sheet.loc["Total Stockholder Equity", year]
+
+                        idx = list(years).index(year)
+                        if idx < len(years) - 1:
+                            prev_year = years[idx + 1]
+                            prev_assets = balance_sheet.loc["Total Assets", prev_year]
+                            prev_equity = balance_sheet.loc["Total Stockholder Equity", prev_year]
+                            avg_assets = (total_assets + prev_assets) / 2
+                            avg_equity = (equity + prev_equity) / 2
+                        else:
+                            avg_assets = total_assets
+                            avg_equity = equity
+
+                        gross_profit = revenue - cogs
+                        roe = net_income / avg_equity if avg_equity else None
+                        gross_margin = gross_profit / revenue if revenue else None
+                        asset_turnover = revenue / avg_assets if avg_assets else None
+                        leverage = total_assets / equity if equity else None
+                        net_margin = net_income / revenue if revenue else None
+                        ebitda = (net_income + interest + tax + da) / 1e6
+                        ebit_m = ebit / 1e6
+
+                        data["Year"].append(str(year.year))
+                        data["ROE"].append(round(roe, 4))
+                        data["Gross Profit Margin"].append(round(gross_margin, 4))
+                        data["Asset Turnover"].append(round(asset_turnover, 4))
+                        data["Financial Leverage"].append(round(leverage, 4))
+                        data["Net Profit Margin"].append(round(net_margin, 4))
+                        data["EBITDA ($M)"].append(round(ebitda, 2))
+                        data["EBIT ($M)"].append(round(ebit_m, 2))
+
+                    except Exception as e:
+                        continue
+
+                df_ratios = pd.DataFrame(data)
+                st.dataframe(df_ratios)
+
+                st.subheader("📈 Interactive Visualizations")
+
+                years = df_ratios["Year"]
+                tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+                    "ROE", "Gross Margin", "Asset Turnover", "Leverage", "Net Margin", "EBITDA", "EBIT"
+                ])
+
+                with tab1:
+                    fig = go.Figure(data=go.Scatter(x=years, y=df_ratios["ROE"], mode='lines+markers'))
+                    fig.update_layout(title="Return on Equity (ROE)", yaxis_title="ROE", xaxis_title="Year")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with tab2:
+                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["Gross Profit Margin"]))
+                    fig.update_layout(title="Gross Profit Margin", yaxis_title="Margin", xaxis_title="Year")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with tab3:
+                    fig = go.Figure(data=go.Scatter(x=years, y=df_ratios["Asset Turnover"], mode='lines+markers'))
+                    fig.update_layout(title="Asset Turnover", yaxis_title="Ratio", xaxis_title="Year")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with tab4:
+                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["Financial Leverage"]))
+                    fig.update_layout(title="Financial Leverage", yaxis_title="Leverage", xaxis_title="Year")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with tab5:
+                    fig = go.Figure(data=go.Scatter(x=years, y=df_ratios["Net Profit Margin"], mode='lines+markers'))
+                    fig.update_layout(title="Net Profit Margin", yaxis_title="Margin", xaxis_title="Year")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with tab6:
+                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["EBITDA ($M)"]))
+                    fig.update_layout(title="EBITDA (in millions)", yaxis_title="USD Millions", xaxis_title="Year")
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with tab7:
+                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["EBIT ($M)"]))
+                    fig.update_layout(title="EBIT (in millions)", yaxis_title="USD Millions", xaxis_title="Year")
+                    st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error("🚨 Error fetching data:")
-        st.code(traceback.format_exc(), language='python')
+        st.error(f"Error fetching data: {e}")
