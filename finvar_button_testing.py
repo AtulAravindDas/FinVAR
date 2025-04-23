@@ -53,13 +53,14 @@ if user_input:
 
             st.success("✅ Company data loaded successfully!")
 
+            # 🔁 LOAD FINANCIAL STATEMENTS ONCE
+            income_statement = ticker.financials
+            balance_sheet = ticker.balance_sheet
+            cash_flow_statement = ticker.cashflow
+            years = income_statement.columns[::-1]
+
             if st.button("Profitability Ratios"):
                 st.subheader("📊 Profitability Ratios (2021–2024)")
-
-                income_statement = ticker.financials
-                balance_sheet = ticker.balance_sheet
-                cash_flow_statement = ticker.cashflow
-                years = income_statement.columns[::-1]
 
                 data = {
                     "Year": [],
@@ -116,7 +117,7 @@ if user_input:
                         data["EBITDA ($M)"].append(round(ebitda, 2))
                         data["EBIT ($M)"].append(round(ebit_m, 2))
 
-                    except Exception as e:
+                    except Exception:
                         continue
 
                 df_ratios = pd.DataFrame(data)
@@ -145,24 +146,4 @@ if user_input:
                     st.plotly_chart(fig, use_container_width=True)
 
                 with tab4:
-                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["Financial Leverage"]))
-                    fig.update_layout(title="Financial Leverage", yaxis_title="Leverage", xaxis_title="Year")
-                    st.plotly_chart(fig, use_container_width=True)
-
-                with tab5:
-                    fig = go.Figure(data=go.Scatter(x=years, y=df_ratios["Net Profit Margin"], mode='lines+markers'))
-                    fig.update_layout(title="Net Profit Margin", yaxis_title="Margin", xaxis_title="Year")
-                    st.plotly_chart(fig, use_container_width=True)
-
-                with tab6:
-                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["EBITDA ($M)"]))
-                    fig.update_layout(title="EBITDA (in millions)", yaxis_title="USD Millions", xaxis_title="Year")
-                    st.plotly_chart(fig, use_container_width=True)
-
-                with tab7:
-                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["EBIT ($M)"]))
-                    fig.update_layout(title="EBIT (in millions)", yaxis_title="USD Millions", xaxis_title="Year")
-                    st.plotly_chart(fig, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"Error fetching data: {e}")
+                    fig = go.Figure(data=go.Bar(x=years, y=df_ratios["_
