@@ -1,21 +1,13 @@
 import yfinance as yf
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
-# Input box
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
-
-# Session state toggles
-if "show_description" not in st.session_state:
-    st.session_state["show_description"] = False
-
-if "show_price" not in st.session_state:
-    st.session_state["show_price"] = False
-
-if "show_financials" not in st.session_state:
-    st.session_state["show_financials"] = False
 
 if user_input:
     try:
@@ -136,7 +128,61 @@ if user_input:
                 st.success("✅ Company data loaded successfully!")
 
             if st.button("📘 Profitability Ratios"):
-                st.info("🔧 Profitability Ratios functionality is under development.")
+                st.subheader("📈 Profitability Trends")
+                income = ticker.financials.T
+                balance = ticker.balance_sheet.T
+
+                df = pd.DataFrame()
+                df['Net Income'] = income['Net Income']
+                df['Gross Profit'] = income['Gross Profit']
+                df['Total Revenue'] = income['Total Revenue']
+                df['EBITDA'] = income['EBITDA']
+                df['EBIT'] = income['EBIT']
+                df['Shareholders Equity'] = balance['Common Stock Equity']
+                df['Total Assets'] = balance['Total Assets']
+                df['Total Liabilities'] = balance['Total Liab']
+
+                df = df.dropna()
+                df.index = df.index.year
+
+                df['ROE (%)'] = (df['Net Income'] / df['Shareholders Equity']) * 100
+                df['Gross Profit Margin (%)'] = (df['Gross Profit'] / df['Total Revenue']) * 100
+                df['Asset Turnover'] = df['Total Revenue'] / df['Total Assets']
+                df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
+                df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
+
+                st.dataframe(df)
+
+                st.subheader("📊 Visual Insights")
+                fig, axs = plt.subplots(3, 2, figsize=(15, 12))
+                fig.suptitle('Key Financial Ratios', fontsize=18, fontweight='bold')
+                x = df.index
+
+                axs[0, 0].plot(x, df['ROE (%)'], marker='o', color='purple')
+                axs[0, 0].set_title("Return on Equity (%)")
+                axs[0, 0].grid(True)
+
+                axs[0, 1].bar(x, df['Gross Profit Margin (%)'], color='teal')
+                axs[0, 1].set_title("Gross Profit Margin (%)")
+
+                axs[1, 0].plot(x, df['Asset Turnover'], marker='s', color='darkorange')
+                axs[1, 0].set_title("Asset Turnover")
+                axs[1, 0].grid(True)
+
+                axs[1, 1].fill_between(x, df['Financial Leverage'], color='skyblue', alpha=0.5)
+                axs[1, 1].set_title("Financial Leverage")
+
+                axs[2, 0].barh(x.astype(str), df['Net Profit Margin (%)'], color='darkgreen')
+                axs[2, 0].set_title("Net Profit Margin (%)")
+
+                axs[2, 1].plot(x, df['EBITDA'], marker='D', label="EBITDA", linestyle='--')
+                axs[2, 1].plot(x, df['EBIT'], marker='x', label="EBIT", linestyle='-')
+                axs[2, 1].set_title("EBITDA vs EBIT")
+                axs[2, 1].legend()
+                axs[2, 1].grid(True)
+
+                plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+                st.pyplot(fig)
 
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
