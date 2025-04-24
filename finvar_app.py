@@ -9,6 +9,14 @@ st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
+# ✅ Initialize session state keys
+if "show_description" not in st.session_state:
+    st.session_state["show_description"] = False
+if "show_price" not in st.session_state:
+    st.session_state["show_price"] = False
+if "show_financials" not in st.session_state:
+    st.session_state["show_financials"] = False
+
 if user_input:
     try:
         ticker = yf.Ticker(user_input)
