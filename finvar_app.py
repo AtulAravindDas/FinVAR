@@ -59,7 +59,6 @@ if user_input:
                 else:
                     st.warning("Stock price data not available.")
 
-                # Display chart
                 hist = ticker.history(period="1y")
                 if not hist.empty:
                     st.subheader("📊 Stock Price (Last 12 Months)")
@@ -71,8 +70,27 @@ if user_input:
                 st.session_state["show_financials"] = not st.session_state["show_financials"]
 
             if st.session_state["show_financials"]:
-                st.subheader("📑 Income Statement")
-                st.write(ticker.financials)
+                st.subheader("📑 Income Statement (Standard Order)")
+                income_statement = ticker.financials
+                ideal_income_order = [
+                    "Operating Revenue", "Total Revenue", "Cost Of Revenue", "Reconciled Cost Of Revenue",
+                    "Gross Profit", "Selling General And Administration", "Research And Development",
+                    "Operating Expense", "Reconciled Depreciation", "EBITDA", "EBIT", "Operating Income",
+                    "Total Operating Income As Reported", "Other Income Expense", "Other Non Operating Income Expenses",
+                    "Interest Income", "Interest Income Non Operating", "Interest Expense", "Interest Expense Non Operating",
+                    "Net Interest Income", "Net Non Operating Interest Income Expense", "Pretax Income", "Tax Provision",
+                    "Tax Effect Of Unusual Items", "Tax Rate For Calcs", "Net Income From Continuing Operation Net Minority Interest",
+                    "Net Income Continuous Operations", "Net Income From Continuing And Discontinued Operation",
+                    "Net Income Including Noncontrolling Interests", "Net Income Common Stockholders", "Net Income",
+                    "Normalized Income", "Normalized EBITDA", "Diluted NI Availto Com Stockholders",
+                    "Diluted EPS", "Basic EPS", "Diluted Average Shares", "Basic Average Shares", "Total Expenses"
+                ]
+
+                ordered_income = income_statement.loc[
+                    [item for item in ideal_income_order if item in income_statement.index]
+                ]
+                ordered_income = ordered_income[ordered_income.columns[::-1]]
+                st.write(ordered_income)
 
                 st.subheader("📊 Balance Sheet")
                 st.write(ticker.balance_sheet)
