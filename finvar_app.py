@@ -55,6 +55,8 @@ if user_input:
             income_statement=ticker.financials
             balance_sheet=ticker.balance_sheet
             cash_flow_statement=ticker.cashflow
+
+            st.write(income_statement)
             st.success("✅ Company data loaded successfully!")
 
             if st.button("Profitability Ratios"):
