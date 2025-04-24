@@ -14,8 +14,6 @@ if "show_description" not in st.session_state:
     st.session_state["show_description"] = False
 if "show_price" not in st.session_state:
     st.session_state["show_price"] = False
-if "show_financials" not in st.session_state:
-    st.session_state["show_financials"] = False
 
 if user_input:
     try:
@@ -66,79 +64,25 @@ if user_input:
                 else:
                     st.warning("No historical price data found.")
 
-            if st.button("Show Financial Statements 📈"):
-                st.session_state["show_financials"] = not st.session_state["show_financials"]
-
-            if st.session_state["show_financials"]:
-                st.subheader("📑 Income Statement (Standard Order)")
-                income_statement = ticker.financials
-                ideal_income_order = [
-                    "Operating Revenue", "Total Revenue", "Cost Of Revenue", "Reconciled Cost Of Revenue",
-                    "Gross Profit", "Selling General And Administration", "Research And Development",
-                    "Operating Expense", "Reconciled Depreciation", "EBITDA", "EBIT", "Operating Income",
-                    "Total Operating Income As Reported", "Other Income Expense", "Other Non Operating Income Expenses",
-                    "Interest Income", "Interest Income Non Operating", "Interest Expense", "Interest Expense Non Operating",
-                    "Net Interest Income", "Net Non Operating Interest Income Expense", "Pretax Income", "Tax Provision",
-                    "Tax Effect Of Unusual Items", "Tax Rate For Calcs", "Net Income From Continuing Operation Net Minority Interest",
-                    "Net Income Continuous Operations", "Net Income From Continuing And Discontinued Operation",
-                    "Net Income Including Noncontrolling Interests", "Net Income Common Stockholders", "Net Income",
-                    "Normalized Income", "Normalized EBITDA", "Diluted NI Availto Com Stockholders",
-                    "Diluted EPS", "Basic EPS", "Diluted Average Shares", "Basic Average Shares", "Total Expenses"
-                ]
-
-                ordered_income = income_statement.loc[
-                    [item for item in ideal_income_order if item in income_statement.index]
-                ]
-                ordered_income = ordered_income[ordered_income.columns[::-1]]
-                st.write(ordered_income)
-
-                st.subheader("📊 Balance Sheet")
-                st.write(ticker.balance_sheet)
-
-                st.subheader("💵 Cash Flow Statement (Standard Order)")
-                cash_flow = ticker.cashflow
-
-                ideal_cashflow_order = [
-                    # Operating
-                    "Net Income From Continuing Operations", "Depreciation And Amortization", "Depreciation Amortization Depletion",
-                    "Deferred Tax", "Deferred Income Tax", "Stock Based Compensation", "Other Non Cash Items",
-                    "Change In Receivables", "Changes In Account Receivables", "Change In Inventory",
-                    "Change In Account Payable", "Change In Payable", "Change In Payables And Accrued Expense",
-                    "Change In Other Current Assets", "Change In Other Current Liabilities",
-                    "Change In Other Working Capital", "Change In Working Capital",
-                    "Cash Flow From Continuing Operating Activities", "Operating Cash Flow",
-
-                    # Investing
-                    "Purchase Of PPE", "Net PPE Purchase And Sale", "Purchase Of Business", "Net Business Purchase And Sale",
-                    "Purchase Of Investment", "Sale Of Investment", "Net Investment Purchase And Sale",
-                    "Net Other Investing Changes", "Cash Flow From Continuing Investing Activities", "Investing Cash Flow",
-
-                    # Financing
-                    "Long Term Debt Issuance", "Long Term Debt Payments", "Net Long Term Debt Issuance",
-                    "Net Short Term Debt Issuance", "Net Issuance Payments Of Debt",
-                    "Common Stock Issuance", "Common Stock Payments", "Net Common Stock Issuance",
-                    "Common Stock Dividend Paid", "Cash Dividends Paid", "Net Other Financing Charges",
-                    "Cash Flow From Continuing Financing Activities", "Financing Cash Flow",
-                    "Issuance Of Capital Stock", "Issuance Of Debt", "Repayment Of Debt", "Repurchase Of Capital Stock",
-
-                    # Summary
-                    "Changes In Cash", "Beginning Cash Position", "End Cash Position",
-                    "Income Tax Paid Supplemental Data", "Interest Paid Supplemental Data",
-                    "Capital Expenditure", "Free Cash Flow"
-                ]
-
-                ordered_cf = cash_flow.loc[
-                    [item for item in ideal_cashflow_order if item in cash_flow.index]
-                ]
-                ordered_cf = ordered_cf[ordered_cf.columns[::-1]]
-                st.write(ordered_cf)
-
-                st.success("✅ Company data loaded successfully!")
-
             if st.button("📘 Profitability Ratios"):
-                st.subheader("📈 Profitability Trends")
-                income = ordered_income
-                balance = ticker.balance_sheet.T
+                st.subheader("📈 Profitability Ratios Overview")
+
+                # Internal use only — reorder key financials
+                income = ticker.financials
+                balance = ticker.balance_sheet
+
+                ideal_income_order = [
+                    "Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"
+                ]
+                ideal_balance_order = [
+                    "Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"
+                ]
+
+                income = income.loc[[item for item in ideal_income_order if item in income.index]]
+                balance = balance.loc[[item for item in ideal_balance_order if item in balance.index]]
+
+                income = income.T
+                balance = balance.T
 
                 df = pd.DataFrame()
                 df['Net Income'] = income['Net Income']
@@ -150,18 +94,20 @@ if user_input:
                 df['Total Assets'] = balance['Total Assets']
                 df['Total Liabilities'] = balance['Total Liabilities Net Minority Interest']
 
-                # ✅ Clean & convert to numeric
+                # Clean and convert to numeric
                 df = df.dropna()
                 df = df.apply(pd.to_numeric, errors='coerce')
                 df = df.dropna()
                 df.index = df.index.year
 
+                # Ratios
                 df['ROE (%)'] = (df['Net Income'] / df['Shareholders Equity']) * 100
                 df['Gross Profit Margin (%)'] = (df['Gross Profit'] / df['Total Revenue']) * 100
                 df['Asset Turnover'] = df['Total Revenue'] / df['Total Assets']
                 df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
                 df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
 
+                # Show Ratio Table
                 st.dataframe(df)
 
                 st.subheader("📊 Visual Insights")
