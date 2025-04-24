@@ -1,4 +1,7 @@
-# FinVAR
+# FinVAR 
+**By: Atul Aravind Das, Dhinesh Mahalingam**
+
+
 Your financial assistant referee – reviewing every ticker, flagging every risk.
 
 🧠 Understand the market.
