@@ -95,8 +95,43 @@ if user_input:
                 st.subheader("📊 Balance Sheet")
                 st.write(ticker.balance_sheet)
 
-                st.subheader("💵 Cash Flow Statement")
-                st.write(ticker.cashflow)
+                st.subheader("💵 Cash Flow Statement (Standard Order)")
+                cash_flow = ticker.cashflow
+
+                ideal_cashflow_order = [
+                    # Operating
+                    "Net Income From Continuing Operations", "Depreciation And Amortization", "Depreciation Amortization Depletion",
+                    "Deferred Tax", "Deferred Income Tax", "Stock Based Compensation", "Other Non Cash Items",
+                    "Change In Receivables", "Changes In Account Receivables", "Change In Inventory",
+                    "Change In Account Payable", "Change In Payable", "Change In Payables And Accrued Expense",
+                    "Change In Other Current Assets", "Change In Other Current Liabilities",
+                    "Change In Other Working Capital", "Change In Working Capital",
+                    "Cash Flow From Continuing Operating Activities", "Operating Cash Flow",
+
+                    # Investing
+                    "Purchase Of PPE", "Net PPE Purchase And Sale", "Purchase Of Business", "Net Business Purchase And Sale",
+                    "Purchase Of Investment", "Sale Of Investment", "Net Investment Purchase And Sale",
+                    "Net Other Investing Changes", "Cash Flow From Continuing Investing Activities", "Investing Cash Flow",
+
+                    # Financing
+                    "Long Term Debt Issuance", "Long Term Debt Payments", "Net Long Term Debt Issuance",
+                    "Net Short Term Debt Issuance", "Net Issuance Payments Of Debt",
+                    "Common Stock Issuance", "Common Stock Payments", "Net Common Stock Issuance",
+                    "Common Stock Dividend Paid", "Cash Dividends Paid", "Net Other Financing Charges",
+                    "Cash Flow From Continuing Financing Activities", "Financing Cash Flow",
+                    "Issuance Of Capital Stock", "Issuance Of Debt", "Repayment Of Debt", "Repurchase Of Capital Stock",
+
+                    # Summary
+                    "Changes In Cash", "Beginning Cash Position", "End Cash Position",
+                    "Income Tax Paid Supplemental Data", "Interest Paid Supplemental Data",
+                    "Capital Expenditure", "Free Cash Flow"
+                ]
+
+                ordered_cf = cash_flow.loc[
+                    [item for item in ideal_cashflow_order if item in cash_flow.index]
+                ]
+                ordered_cf = ordered_cf[ordered_cf.columns[::-1]]
+                st.write(ordered_cf)
 
                 st.success("✅ Company data loaded successfully!")
 
