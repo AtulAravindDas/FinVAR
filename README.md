@@ -8,5 +8,5 @@ Your financial assistant referee – reviewing every ticker, flagging every risk
 🚨 Flag the risks.
 💼 Make smarter moves.
 
-This Application seeks to visualize financial insights and considers the concept of Value At Risk and helps investors make better investment decisions
+This Application seeks to visualize financial insights and considers the concept of Earnings Per Share and helps investors make better investment decisions
 
