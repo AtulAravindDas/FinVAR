@@ -137,7 +137,7 @@ if user_input:
 
             if st.button("📘 Profitability Ratios"):
                 st.subheader("📈 Profitability Trends")
-                income = ticker.financials.T
+                income = ordered_income
                 balance = ticker.balance_sheet.T
 
                 df = pd.DataFrame()
@@ -150,6 +150,9 @@ if user_input:
                 df['Total Assets'] = balance['Total Assets']
                 df['Total Liabilities'] = balance['Total Liabilities Net Minority Interest']
 
+                # ✅ Clean & convert to numeric
+                df = df.dropna()
+                df = df.apply(pd.to_numeric, errors='coerce')
                 df = df.dropna()
                 df.index = df.index.year
 
