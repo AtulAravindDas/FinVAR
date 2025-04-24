@@ -1,8 +1,8 @@
 import yfinance as yf
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import plotly.express as px
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
@@ -110,36 +110,43 @@ if user_input:
                 # Show Ratio Table
                 st.dataframe(df)
 
-                st.subheader("📊 Visual Insights")
-                fig, axs = plt.subplots(3, 2, figsize=(15, 12))
-                fig.suptitle('Key Financial Ratios', fontsize=18, fontweight='bold')
-                x = df.index
+                st.subheader("📊 Interactive Financial Visuals")
 
-                axs[0, 0].plot(x, df['ROE (%)'], marker='o', color='purple')
-                axs[0, 0].set_title("Return on Equity (%)")
-                axs[0, 0].grid(True)
+                # ROE
+                fig1 = px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", 
+                               labels={"index": "Year"}, template="plotly_dark", 
+                               hover_data=["Net Income", "Shareholders Equity"])
+                st.plotly_chart(fig1, use_container_width=True)
 
-                axs[0, 1].bar(x, df['Gross Profit Margin (%)'], color='teal')
-                axs[0, 1].set_title("Gross Profit Margin (%)")
+                # Gross Profit Margin
+                fig2 = px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)",
+                              labels={"index": "Year"}, template="plotly_dark",
+                              hover_data=["Gross Profit", "Total Revenue"])
+                st.plotly_chart(fig2, use_container_width=True)
 
-                axs[1, 0].plot(x, df['Asset Turnover'], marker='s', color='darkorange')
-                axs[1, 0].set_title("Asset Turnover")
-                axs[1, 0].grid(True)
+                # Asset Turnover
+                fig3 = px.line(df, x=df.index, y="Asset Turnover", markers=True, title="Asset Turnover",
+                               labels={"index": "Year"}, template="plotly_dark",
+                               hover_data=["Total Revenue", "Total Assets"])
+                st.plotly_chart(fig3, use_container_width=True)
 
-                axs[1, 1].fill_between(x, df['Financial Leverage'], color='skyblue', alpha=0.5)
-                axs[1, 1].set_title("Financial Leverage")
+                # Financial Leverage
+                fig4 = px.area(df, x=df.index, y="Financial Leverage", title="Financial Leverage",
+                               labels={"index": "Year"}, template="plotly_dark",
+                               hover_data=["Total Assets", "Shareholders Equity"])
+                st.plotly_chart(fig4, use_container_width=True)
 
-                axs[2, 0].barh(x.astype(str), df['Net Profit Margin (%)'], color='darkgreen')
-                axs[2, 0].set_title("Net Profit Margin (%)")
+                # Net Profit Margin
+                fig5 = px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", orientation='v', 
+                              title="Net Profit Margin (%)", template="plotly_dark", 
+                              hover_data=["Net Income", "Total Revenue"])
+                st.plotly_chart(fig5, use_container_width=True)
 
-                axs[2, 1].plot(x, df['EBITDA'], marker='D', label="EBITDA", linestyle='--')
-                axs[2, 1].plot(x, df['EBIT'], marker='x', label="EBIT", linestyle='-')
-                axs[2, 1].set_title("EBITDA vs EBIT")
-                axs[2, 1].legend()
-                axs[2, 1].grid(True)
-
-                plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-                st.pyplot(fig)
+                # EBITDA vs EBIT
+                fig6 = px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, 
+                               title="EBITDA vs EBIT", template="plotly_dark",
+                               labels={"value": "Amount (USD)", "index": "Year", "variable": "Metric"})
+                st.plotly_chart(fig6, use_container_width=True)
 
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
