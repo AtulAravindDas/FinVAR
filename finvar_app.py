@@ -4,9 +4,18 @@ import streamlit as st
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
-
+# Input box
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
+# Session state toggles
+if "show_description" not in st.session_state:
+    st.session_state["show_description"] = False
+
+if "show_price" not in st.session_state:
+    st.session_state["show_price"] = False
+
+if "show_financials" not in st.session_state:
+    st.session_state["show_financials"] = False
 
 if user_input:
     try:
@@ -21,11 +30,17 @@ if user_input:
             st.write(company_name)
 
             if st.button("Show/Hide Description"):
+                st.session_state["show_description"] = not st.session_state["show_description"]
+
+            if st.session_state["show_description"]:
                 st.subheader("📝 Company Description")
                 description = info.get('longBusinessSummary', 'N/A')
                 st.write(description)
 
             if st.button("Display Current Price 💰"):
+                st.session_state["show_price"] = not st.session_state["show_price"]
+
+            if st.session_state["show_price"]:
                 current_price = info.get("currentPrice", "N/A")
                 prev_close = info.get("previousClose", "N/A")
 
@@ -44,7 +59,7 @@ if user_input:
                 else:
                     st.warning("Stock price data not available.")
 
-                
+                # Display chart
                 hist = ticker.history(period="1y")
                 if not hist.empty:
                     st.subheader("📊 Stock Price (Last 12 Months)")
@@ -52,15 +67,23 @@ if user_input:
                 else:
                     st.warning("No historical price data found.")
 
-            income_statement=ticker.financials
-            balance_sheet=ticker.balance_sheet
-            cash_flow_statement=ticker.cashflow
+            if st.button("Show Financial Statements 📈"):
+                st.session_state["show_financials"] = not st.session_state["show_financials"]
 
-            st.write(income_statement)
-            st.success("✅ Company data loaded successfully!")
+            if st.session_state["show_financials"]:
+                st.subheader("📑 Income Statement")
+                st.write(ticker.financials)
 
-            if st.button("Profitability Ratios"):
-                st.write("Calculate Profitability Ratios")
+                st.subheader("📊 Balance Sheet")
+                st.write(ticker.balance_sheet)
+
+                st.subheader("💵 Cash Flow Statement")
+                st.write(ticker.cashflow)
+
+                st.success("✅ Company data loaded successfully!")
+
+            if st.button("📘 Profitability Ratios"):
+                st.info("🔧 Profitability Ratios functionality is under development.")
 
     except Exception as e:
-        st.error(f"Error fetching data: {e}")
+        st.error(f"⚠️ Error fetching data: {e}")
