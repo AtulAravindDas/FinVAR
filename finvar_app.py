@@ -148,7 +148,7 @@ if user_input:
                 df['EBIT'] = income['EBIT']
                 df['Shareholders Equity'] = balance['Common Stock Equity']
                 df['Total Assets'] = balance['Total Assets']
-                df['Total Liabilities'] = balance['Total Liabilities']
+                df['Total Liabilities'] = balance['Total Liabilities Net Minority Interest']
 
                 df = df.dropna()
                 df.index = df.index.year
