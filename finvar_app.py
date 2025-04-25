@@ -182,6 +182,7 @@ if user_input:
                 st.plotly_chart(fig11, use_container_width=True)
                         # 💧 Liquidity and Dividend Overview Section
             
+            
             if st.button("💧 Liquidity & Payout Ratios Overview"):
                 st.subheader("💧 Liquidity and Dividend Metrics")
 
@@ -242,6 +243,26 @@ if user_input:
                                title="Retention Rate (%) Over Time", template="plotly_dark")
                 st.plotly_chart(fig17, use_container_width=True)
 
+            # 📈 Stock Price and Volatility Overview Section
+            if st.button("📈 Stock Price & Volatility"):
+                st.subheader("📈 Stock Price & 12-Month Volatility Overview")
+
+                hist = ticker.history(period="1y")
+
+                if not hist.empty:
+                    st.line_chart(hist["Close"])
+        
+                    st.subheader("🔎 12-Month Volatility Calculation")
+
+        # Daily returns
+                    hist['Daily Return'] = hist['Close'].pct_change()
+
+        # Volatility (Standard Deviation of daily returns * sqrt(252 trading days))
+                    volatility = hist['Daily Return'].std() * np.sqrt(252)
+
+                    st.markdown(f"""<div style="background-color:#1e1e1e; padding:20px; border-radius:10px;"><h2 style='font-size:32px; color:white;'>Annualized Volatility</h2><p style='font-size:24px; color:#00FF00;'>{volatility:.2%}</p></div>""", unsafe_allow_html=True)
+                else:
+                    st.warning("No historical data found to calculate volatility.")
 
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
