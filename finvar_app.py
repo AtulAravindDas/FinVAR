@@ -64,10 +64,10 @@ if user_input:
                 else:
                     st.warning("No historical price data found.")
 
+            # 📘 Profitability Ratios Section
             if st.button("📘 Profitability Ratios"):
                 st.subheader("📈 Profitability Ratios Overview")
 
-                # Internal use only — reorder key financials
                 income = ticker.financials
                 balance = ticker.balance_sheet
 
@@ -94,7 +94,6 @@ if user_input:
                 df['Total Assets'] = balance['Total Assets']
                 df['Total Liabilities'] = balance['Total Liabilities Net Minority Interest']
 
-                # Clean and convert to numeric
                 df = df.dropna()
                 df = df.apply(pd.to_numeric, errors='coerce')
                 df = df.dropna()
@@ -107,7 +106,6 @@ if user_input:
                 df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
                 df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
 
-                # Show Ratio Table
                 st.dataframe(df)
 
                 st.subheader("📊 Interactive Financial Visuals")
@@ -147,6 +145,44 @@ if user_input:
                                title="EBITDA vs EBIT", template="plotly_dark",
                                labels={"value": "Amount (USD)", "index": "Year", "variable": "Metric"})
                 st.plotly_chart(fig6, use_container_width=True)
+
+            # 📈 Growth Overview Section (Separate button)
+            if st.button("📈 Growth Overview"):
+                st.subheader("📈 Revenue and EBITDA Growth Rates")
+
+                income = ticker.financials
+
+                ideal_income_order_growth = [
+                    "Total Revenue", "EBITDA"
+                ]
+
+                income_growth = income.loc[[item for item in ideal_income_order_growth if item in income.index]]
+                income_growth = income_growth.T
+
+                income_growth.index = income_growth.index.year
+
+                income_growth = income_growth.apply(pd.to_numeric, errors='coerce')
+                income_growth = income_growth.dropna()
+
+                # Calculate YoY Growth Rates
+                income_growth['Revenue Growth (%)'] = income_growth['Total Revenue'].pct_change() * 100
+                income_growth['EBITDA Growth (%)'] = income_growth['EBITDA'].pct_change() * 100
+
+                st.dataframe(income_growth[['Revenue Growth (%)', 'EBITDA Growth (%)']].dropna())
+
+                st.subheader("📊 Growth Visualizations")
+
+                # Revenue Growth Chart
+                fig7 = px.line(income_growth, x=income_growth.index, y="Revenue Growth (%)", markers=True, 
+                               title="Revenue Growth (%) YoY", labels={"index": "Year"}, 
+                               template="plotly_dark")
+                st.plotly_chart(fig7, use_container_width=True)
+
+                # EBITDA Growth Chart
+                fig8 = px.line(income_growth, x=income_growth.index, y="EBITDA Growth (%)", markers=True, 
+                               title="EBITDA Growth (%) YoY", labels={"index": "Year"}, 
+                               template="plotly_dark")
+                st.plotly_chart(fig8, use_container_width=True)
 
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
