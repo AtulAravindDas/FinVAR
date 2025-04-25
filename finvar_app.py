@@ -71,12 +71,8 @@ if user_input:
                 income = ticker.financials
                 balance = ticker.balance_sheet
 
-                ideal_income_order = [
-                    "Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"
-                ]
-                ideal_balance_order = [
-                    "Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"
-                ]
+                ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
+                ideal_balance_order = ["Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"]
 
                 income = income.loc[[item for item in ideal_income_order if item in income.index]]
                 balance = balance.loc[[item for item in ideal_balance_order if item in balance.index]]
@@ -110,59 +106,35 @@ if user_input:
 
                 st.subheader("📊 Interactive Financial Visuals")
 
-                # ROE
-                fig1 = px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", 
-                               labels={"index": "Year"}, template="plotly_dark", 
-                               hover_data=["Net Income", "Shareholders Equity"])
+                # Different visualization styles
+                fig1 = px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark")
                 st.plotly_chart(fig1, use_container_width=True)
 
-                # Gross Profit Margin
-                fig2 = px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)",
-                              labels={"index": "Year"}, template="plotly_dark",
-                              hover_data=["Gross Profit", "Total Revenue"])
+                fig2 = px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark")
                 st.plotly_chart(fig2, use_container_width=True)
 
-                # Asset Turnover
-                fig3 = px.line(df, x=df.index, y="Asset Turnover", markers=True, title="Asset Turnover",
-                               labels={"index": "Year"}, template="plotly_dark",
-                               hover_data=["Total Revenue", "Total Assets"])
+                fig3 = px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark")
                 st.plotly_chart(fig3, use_container_width=True)
 
-                # Financial Leverage
-                fig4 = px.area(df, x=df.index, y="Financial Leverage", title="Financial Leverage",
-                               labels={"index": "Year"}, template="plotly_dark",
-                               hover_data=["Total Assets", "Shareholders Equity"])
+                fig4 = px.scatter(df, x=df.index, y="Financial Leverage", size="Financial Leverage", title="Financial Leverage", template="plotly_dark")
                 st.plotly_chart(fig4, use_container_width=True)
 
-                # Net Profit Margin
-                fig5 = px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", orientation='v', 
-                              title="Net Profit Margin (%)", template="plotly_dark", 
-                              hover_data=["Net Income", "Total Revenue"])
+                fig5 = px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", title="Net Profit Margin (%)", template="plotly_dark")
                 st.plotly_chart(fig5, use_container_width=True)
 
-                # EBITDA vs EBIT
-                fig6 = px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, 
-                               title="EBITDA vs EBIT", template="plotly_dark",
-                               labels={"value": "Amount (USD)", "index": "Year", "variable": "Metric"})
+                fig6 = px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, title="EBITDA vs EBIT", template="plotly_dark")
                 st.plotly_chart(fig6, use_container_width=True)
 
-            # 📈 Growth Overview Section (Separate button)
+            # 📈 Growth Overview Section
             if st.button("📈 Growth Overview"):
                 st.subheader("📈 Revenue and EBITDA Growth Rates")
 
                 income = ticker.financials
-
-                ideal_income_order_growth = [
-                    "Total Revenue", "EBITDA"
-                ]
-
+                ideal_income_order_growth = ["Total Revenue", "EBITDA"]
                 income_growth = income.loc[[item for item in ideal_income_order_growth if item in income.index]]
                 income_growth = income_growth.T
-
                 income_growth.index = income_growth.index.year
-
-                income_growth = income_growth.apply(pd.to_numeric, errors='coerce')
-                income_growth = income_growth.dropna()
+                income_growth = income_growth.apply(pd.to_numeric, errors='coerce').dropna()
 
                 # Calculate YoY Growth Rates
                 income_growth['Revenue Growth (%)'] = income_growth['Total Revenue'].pct_change() * 100
@@ -172,17 +144,42 @@ if user_input:
 
                 st.subheader("📊 Growth Visualizations")
 
-                # Revenue Growth Chart
-                fig7 = px.line(income_growth, x=income_growth.index, y="Revenue Growth (%)", markers=True, 
-                               title="Revenue Growth (%) YoY", labels={"index": "Year"}, 
-                               template="plotly_dark")
+                fig7 = px.line(income_growth, x=income_growth.index, y="Revenue Growth (%)", markers=True, title="Revenue Growth (%) YoY", template="plotly_dark")
                 st.plotly_chart(fig7, use_container_width=True)
 
-                # EBITDA Growth Chart
-                fig8 = px.line(income_growth, x=income_growth.index, y="EBITDA Growth (%)", markers=True, 
-                               title="EBITDA Growth (%) YoY", labels={"index": "Year"}, 
-                               template="plotly_dark")
+                fig8 = px.bar(income_growth, x=income_growth.index, y="EBITDA Growth (%)", title="EBITDA Growth (%) YoY", template="plotly_dark")
                 st.plotly_chart(fig8, use_container_width=True)
+
+            # ⚡ Leverage Overview Section
+            if st.button("⚡ Leverage Overview"):
+                st.subheader("⚡ Leverage Ratios Overview")
+
+                balance = ticker.balance_sheet
+                ideal_balance_order_leverage = ["Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"]
+                balance_leverage = balance.loc[[item for item in ideal_balance_order_leverage if item in balance.index]]
+                balance_leverage = balance_leverage.T
+                balance_leverage.index = balance_leverage.index.year
+                balance_leverage = balance_leverage.apply(pd.to_numeric, errors='coerce').dropna()
+
+                balance_leverage['Debt-to-Equity Ratio'] = balance_leverage['Total Liabilities Net Minority Interest'] / balance_leverage['Common Stock Equity']
+                balance_leverage['Debt-to-Assets Ratio'] = balance_leverage['Total Liabilities Net Minority Interest'] / balance_leverage['Total Assets']
+                balance_leverage['Financial Leverage'] = balance_leverage['Total Assets'] / balance_leverage['Common Stock Equity']
+
+                st.dataframe(balance_leverage[['Debt-to-Equity Ratio', 'Debt-to-Assets Ratio', 'Financial Leverage']])
+
+                st.subheader("📊 Leverage Visualizations")
+
+                fig9 = px.line(balance_leverage, x=balance_leverage.index, y="Debt-to-Equity Ratio", markers=True,
+                               title="Debt-to-Equity Ratio Over Time", template="plotly_dark")
+                st.plotly_chart(fig9, use_container_width=True)
+
+                fig10 = px.bar(balance_leverage, x=balance_leverage.index, y="Debt-to-Assets Ratio",
+                               title="Debt-to-Assets Ratio Over Time", template="plotly_dark")
+                st.plotly_chart(fig10, use_container_width=True)
+
+                fig11 = px.area(balance_leverage, x=balance_leverage.index, y="Financial Leverage",
+                                title="Financial Leverage Over Time", template="plotly_dark")
+                st.plotly_chart(fig11, use_container_width=True)
 
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
