@@ -188,7 +188,7 @@ if user_input:
                 income = ticker.financials
 
                 ideal_balance_order_liquidity = ["Current Assets", "Current Liabilities"]
-                ideal_cashflow_order = ["Total Cash From Operating Activities", "Capital Expenditures", "Dividends Paid"]
+                ideal_cashflow_order = ["Operating Cash Flow", "Capital Expenditures", "Cash Dividends Paid"]
                 ideal_income_order_liquidity = ["Total Revenue", "Net Income"]
 
                 balance_liquidity = balance.loc[[item for item in ideal_balance_order_liquidity if item in balance.index]].T
