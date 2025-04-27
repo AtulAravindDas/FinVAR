@@ -12,7 +12,7 @@ def styled_header(title):
     st.markdown(f"<h2 style='color:#4CAF50;'>{title}</h2>", unsafe_allow_html=True)
 
 st.set_page_config(page_title="FinVAR", layout="centered")
-st.title("\ud83d\udcca FinVAR – Your Financial Assistant Referee")
+st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
@@ -28,26 +28,26 @@ if user_input:
         info = ticker.info
 
         if not info or 'longName' not in info:
-            st.error("\u274c No company information found. Please enter a valid ticker.")
+            st.error("❌ No company information found. Please enter a valid ticker.")
         else:
             nice_divider()
-            styled_header("\ud83c\udfe2 Company Details")
+            styled_header("🏢 Company Details")
             company_name = info.get('longName', 'N/A')
             st.write(company_name)
 
             nice_divider()
-            styled_header("\ud83d\udcdd Company Overview")
+            styled_header("📝 Company Overview")
             if st.button("Show/Hide Description"):
                 st.session_state["show_description"] = not st.session_state["show_description"]
 
             if st.session_state["show_description"]:
-                st.subheader("\ud83d\udcdc Company Description")
+                st.subheader("📝 Company Description")
                 description = info.get('longBusinessSummary', 'N/A')
                 st.write(description)
 
             nice_divider()
-            styled_header("\ud83d\udcb0 Stock Price Information")
-            if st.button("Display Current Price \ud83d\udcb0"):
+            styled_header("💰 Stock Price Information")
+            if st.button("Display Current Price 💰"):
                 st.session_state["show_price"] = not st.session_state["show_price"]
 
             if st.session_state["show_price"]:
@@ -70,34 +70,34 @@ if user_input:
                     st.warning("Stock price data not available.")
 
             nice_divider()
-            styled_header("\ud83d\udcd8 Profitability Analysis")
-            if st.button("\ud83d\udcd8 Profitability Ratios"):
+            styled_header("📘 Profitability Analysis")
+            if st.button("📘 Profitability Ratios"):
                 # Your Profitability Ratios code block
                 pass
 
             nice_divider()
-            styled_header("\ud83d\udcc8 Growth Metrics")
-            if st.button("\ud83d\udcc8 Growth Overview"):
+            styled_header("📈 Growth Metrics")
+            if st.button("📈 Growth Overview"):
                 # Your Growth Overview code block
                 pass
 
             nice_divider()
-            styled_header("\u26a1 Leverage Insights")
-            if st.button("\u26a1 Leverage Overview"):
+            styled_header("⚡ Leverage Insights")
+            if st.button("⚡ Leverage Overview"):
                 # Your Leverage Overview code block
                 pass
 
             nice_divider()
-            styled_header("\ud83d\udca7 Liquidity & Dividend Strength")
-            if st.button("\ud83d\udca7 Liquidity & Dividend Overview"):
+            styled_header("💧 Liquidity & Dividend Strength")
+            if st.button("💧 Liquidity & Dividend Overview"):
                 # Your Liquidity Overview code block
                 pass
 
             nice_divider()
-            styled_header("\ud83d\udcc8 Volatility Trends")
-            if st.button("\ud83d\udcc8 Stock Price & Volatility"):
+            styled_header("📈 Volatility Trends")
+            if st.button("📈 Stock Price & Volatility"):
                 # Your Volatility Overview code block
                 pass
 
     except Exception as e:
-        st.error(f"\u26a0\ufe0f Error fetching data: {e}")
+        st.error(f"⚠️ Error fetching data: {e}")
