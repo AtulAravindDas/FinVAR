@@ -5,11 +5,11 @@ import numpy as np
 import plotly.express as px
 
 st.set_page_config(page_title="FinVAR", layout="centered")
-st.title("📊 FinVAR – Your Financial Assistant Referee")
+st.title("\ud83d\udcca FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
-# ✅ Initialize session state keys
+# Initialize session state keys
 if "show_description" not in st.session_state:
     st.session_state["show_description"] = False
 if "show_price" not in st.session_state:
@@ -21,21 +21,21 @@ if user_input:
         info = ticker.info
 
         if not info or 'longName' not in info:
-            st.error("❌ No company information found. Please enter a valid ticker.")
+            st.error("\u274c No company information found. Please enter a valid ticker.")
         else:
             company_name = info.get('longName', 'N/A')
-            st.subheader("🏢 Company Name")
+            st.subheader("\ud83c\udfe2 Company Name")
             st.write(company_name)
 
             if st.button("Show/Hide Description"):
                 st.session_state["show_description"] = not st.session_state["show_description"]
 
             if st.session_state["show_description"]:
-                st.subheader("📝 Company Description")
+                st.subheader("\ud83d\udcdd Company Description")
                 description = info.get('longBusinessSummary', 'N/A')
                 st.write(description)
 
-            if st.button("Display Current Price 💰"):
+            if st.button("Display Current Price \ud83d\udcb0"):
                 st.session_state["show_price"] = not st.session_state["show_price"]
 
             if st.session_state["show_price"]:
@@ -57,29 +57,16 @@ if user_input:
                 else:
                     st.warning("Stock price data not available.")
 
-                hist = ticker.history(period="1y")
-                if not hist.empty:
-                    st.subheader("📊 Stock Price (Last 12 Months)")
-                    st.line_chart(hist["Close"])
-                else:
-                    st.warning("No historical price data found.")
-
-            # 📘 Profitability Ratios Section
-            if st.button("📘 Profitability Ratios"):
-                st.subheader("📈 Profitability Ratios Overview")
-
+            if st.button("\ud83d\udcd8 Profitability Ratios"):
+                st.subheader("\ud83d\udcc8 Profitability Ratios Overview")
                 income = ticker.financials
                 balance = ticker.balance_sheet
-
                 ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
                 ideal_balance_order = ["Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"]
-
                 income = income.loc[[item for item in ideal_income_order if item in income.index]]
                 balance = balance.loc[[item for item in ideal_balance_order if item in balance.index]]
-
                 income = income.T
                 balance = balance.T
-
                 df = pd.DataFrame()
                 df['Net Income'] = income['Net Income']
                 df['Gross Profit'] = income['Gross Profit']
@@ -89,180 +76,88 @@ if user_input:
                 df['Shareholders Equity'] = balance['Common Stock Equity']
                 df['Total Assets'] = balance['Total Assets']
                 df['Total Liabilities'] = balance['Total Liabilities Net Minority Interest']
-
                 df = df.dropna()
-                df = df.apply(pd.to_numeric, errors='coerce')
-                df = df.dropna()
+                df = df.apply(pd.to_numeric, errors='coerce').dropna()
                 df.index = df.index.year
-
-                # Ratios
                 df['ROE (%)'] = (df['Net Income'] / df['Shareholders Equity']) * 100
                 df['Gross Profit Margin (%)'] = (df['Gross Profit'] / df['Total Revenue']) * 100
                 df['Asset Turnover'] = df['Total Revenue'] / df['Total Assets']
                 df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
                 df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
-
                 st.dataframe(df)
+                st.subheader("\ud83d\udcc8 Interactive Financial Visuals")
+                st.plotly_chart(px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.scatter(df, x=df.index, y="Financial Leverage", size="Financial Leverage", title="Financial Leverage", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", title="Net Profit Margin (%)", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, title="EBITDA vs EBIT", template="plotly_dark"), use_container_width=True)
+                latest_year = df.index.max()
+                roe_latest = df.loc[latest_year, 'ROE (%)']
+                gross_margin_latest = df.loc[latest_year, 'Gross Profit Margin (%)']
+                net_margin_latest = df.loc[latest_year, 'Net Profit Margin (%)']
+                asset_turnover_latest = df.loc[latest_year, 'Asset Turnover']
+                summary_text = ""
+                if roe_latest > 15:
+                    summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n\n"
+                else:
+                    summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n\n"
+                if gross_margin_latest > 40:
+                    summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n\n"
+                elif gross_margin_latest > 20:
+                    summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n\n"
+                else:
+                    summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n\n"
+                if net_margin_latest > 10:
+                    summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n\n"
+                else:
+                    summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n\n"
+                if asset_turnover_latest > 1:
+                    summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n\n"
+                else:
+                    summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n\n"
+                st.subheader("🔍 FinVAR Summary: Profitability Overview")
+                st.info(summary_text)
 
-                st.subheader("📊 Interactive Financial Visuals")
-
-                # Different visualization styles
-                fig1 = px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark")
-                st.plotly_chart(fig1, use_container_width=True)
-
-                fig2 = px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark")
-                st.plotly_chart(fig2, use_container_width=True)
-
-                fig3 = px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark")
-                st.plotly_chart(fig3, use_container_width=True)
-
-                fig4 = px.scatter(df, x=df.index, y="Financial Leverage", size="Financial Leverage", title="Financial Leverage", template="plotly_dark")
-                st.plotly_chart(fig4, use_container_width=True)
-
-                fig5 = px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", title="Net Profit Margin (%)", template="plotly_dark")
-                st.plotly_chart(fig5, use_container_width=True)
-
-                fig6 = px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, title="EBITDA vs EBIT", template="plotly_dark")
-                st.plotly_chart(fig6, use_container_width=True)
-
-            # 📈 Growth Overview Section
             if st.button("📈 Growth Overview"):
-                st.subheader("📈 Revenue and EBITDA Growth Rates")
-
+                st.subheader("\ud83d\udcc8 Revenue and EBITDA Growth Overview")
                 income = ticker.financials
-                ideal_income_order_growth = ["Total Revenue", "EBITDA"]
-                income_growth = income.loc[[item for item in ideal_income_order_growth if item in income.index]]
-                income_growth = income_growth.T
-                income_growth.index = income_growth.index.year
-                income_growth = income_growth.apply(pd.to_numeric, errors='coerce').dropna()
+                growth_df = income.T[['Total Revenue', 'EBITDA']]
+                growth_df = growth_df.pct_change() * 100
+                st.dataframe(growth_df)
+                st.plotly_chart(px.line(growth_df, x=growth_df.index.year, y=['Total Revenue', 'EBITDA'], markers=True, title="Revenue and EBITDA Growth YoY (%)", template="plotly_dark"), use_container_width=True)
 
-                # Calculate YoY Growth Rates
-                income_growth['Revenue Growth (%)'] = income_growth['Total Revenue'].pct_change() * 100
-                income_growth['EBITDA Growth (%)'] = income_growth['EBITDA'].pct_change() * 100
-
-                st.dataframe(income_growth[['Revenue Growth (%)', 'EBITDA Growth (%)']].dropna())
-
-                st.subheader("📊 Growth Visualizations")
-
-                fig7 = px.line(income_growth, x=income_growth.index, y="Revenue Growth (%)", markers=True, title="Revenue Growth (%) YoY", template="plotly_dark")
-                st.plotly_chart(fig7, use_container_width=True)
-
-                fig8 = px.bar(income_growth, x=income_growth.index, y="EBITDA Growth (%)", title="EBITDA Growth (%) YoY", template="plotly_dark")
-                st.plotly_chart(fig8, use_container_width=True)
-
-            # ⚡ Leverage Overview Section
             if st.button("⚡ Leverage Overview"):
                 st.subheader("⚡ Leverage Ratios Overview")
+                balance = ticker.balance_sheet.T
+                leverage_df = pd.DataFrame()
+                leverage_df['Debt-to-Equity'] = balance['Total Liabilities Net Minority Interest'] / balance['Common Stock Equity']
+                leverage_df['Debt-to-Assets'] = balance['Total Liabilities Net Minority Interest'] / balance['Total Assets']
+                leverage_df.index = leverage_df.index.year
+                st.dataframe(leverage_df)
+                st.plotly_chart(px.bar(leverage_df, x=leverage_df.index, y=['Debt-to-Equity', 'Debt-to-Assets'], title="Leverage Ratios", template="plotly_dark"), use_container_width=True)
 
-                balance = ticker.balance_sheet
-                ideal_balance_order_leverage = ["Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"]
-                balance_leverage = balance.loc[[item for item in ideal_balance_order_leverage if item in balance.index]]
-                balance_leverage = balance_leverage.T
-                balance_leverage.index = balance_leverage.index.year
-                balance_leverage = balance_leverage.apply(pd.to_numeric, errors='coerce').dropna()
+            if st.button("💧 Liquidity & Dividend Overview"):
+                st.subheader("💧 Liquidity and Dividend Overview")
+                balance = ticker.balance_sheet.T
+                cashflow = ticker.cashflow.T
+                liquidity_df = pd.DataFrame()
+                liquidity_df['Current Ratio'] = balance['Current Assets'] / balance['Current Liabilities']
+                liquidity_df['FCF'] = cashflow['Operating Cash Flow'] - cashflow['Capital Expenditure']
+                liquidity_df.index = liquidity_df.index.year
+                st.dataframe(liquidity_df)
+                st.plotly_chart(px.line(liquidity_df, x=liquidity_df.index, y=['Current Ratio', 'FCF'], markers=True, title="Liquidity & FCF Trends", template="plotly_dark"), use_container_width=True)
 
-                balance_leverage['Debt-to-Equity Ratio'] = balance_leverage['Total Liabilities Net Minority Interest'] / balance_leverage['Common Stock Equity']
-                balance_leverage['Debt-to-Assets Ratio'] = balance_leverage['Total Liabilities Net Minority Interest'] / balance_leverage['Total Assets']
-                balance_leverage['Financial Leverage'] = balance_leverage['Total Assets'] / balance_leverage['Common Stock Equity']
-
-                st.dataframe(balance_leverage[['Debt-to-Equity Ratio', 'Debt-to-Assets Ratio', 'Financial Leverage']])
-
-                st.subheader("📊 Leverage Visualizations")
-
-                fig9 = px.line(balance_leverage, x=balance_leverage.index, y="Debt-to-Equity Ratio", markers=True,
-                               title="Debt-to-Equity Ratio Over Time", template="plotly_dark")
-                st.plotly_chart(fig9, use_container_width=True)
-
-                fig10 = px.bar(balance_leverage, x=balance_leverage.index, y="Debt-to-Assets Ratio",
-                               title="Debt-to-Assets Ratio Over Time", template="plotly_dark")
-                st.plotly_chart(fig10, use_container_width=True)
-
-                fig11 = px.area(balance_leverage, x=balance_leverage.index, y="Financial Leverage",
-                                title="Financial Leverage Over Time", template="plotly_dark")
-                st.plotly_chart(fig11, use_container_width=True)
-                        # 💧 Liquidity and Dividend Overview Section
-            
-            
-            if st.button("💧 Liquidity & Payout Ratios Overview"):
-                st.subheader("💧 Liquidity and Dividend Metrics")
-
-                balance = ticker.balance_sheet
-                cashflow = ticker.cashflow
-                income = ticker.financials
-
-                ideal_balance_order_liquidity = ["Current Assets", "Current Liabilities"]
-                ideal_cashflow_order = ["Operating Cash Flow", "Capital Expenditure", "Cash Dividends Paid"]
-                ideal_income_order_liquidity = ["Total Revenue", "Net Income"]
-
-                # Extract and process
-                balance_liquidity = balance.loc[[item for item in ideal_balance_order_liquidity if item in balance.index]].T
-                cashflow_liquidity = cashflow.loc[[item for item in ideal_cashflow_order if item in cashflow.index]].T
-                income_liquidity = income.loc[[item for item in ideal_income_order_liquidity if item in income.index]].T
-
-                # Combine all into one DataFrame
-                df_liquidity = pd.concat([balance_liquidity, cashflow_liquidity, income_liquidity], axis=1)
-
-                df_liquidity.index = df_liquidity.index.year
-                df_liquidity = df_liquidity.apply(pd.to_numeric, errors='coerce').dropna()
-
-                # Calculations
-                df_liquidity['Current Ratio'] = df_liquidity['Current Assets'] / df_liquidity['Current Liabilities']
-                df_liquidity['Free Cash Flow (FCF)'] = df_liquidity['Operating Cash Flow'] - df_liquidity['Capital Expenditure']
-                df_liquidity['Capex (Capital Expenditures)'] = df_liquidity['Capital Expenditure']
-                df_liquidity['FCF to Revenue (%)'] = (df_liquidity['Free Cash Flow (FCF)'] / df_liquidity['Total Revenue']) * 100
-                df_liquidity['Dividend Payout Ratio (%)'] = (df_liquidity['Cash Dividends Paid'].abs() / df_liquidity['Net Income']) * 100
-                df_liquidity['Retention Rate (%)'] = 100 - df_liquidity['Dividend Payout Ratio (%)']
-
-                st.dataframe(df_liquidity[['Current Ratio', 'Free Cash Flow (FCF)', 'Capex (Capital Expenditures)', 
-                                           'FCF to Revenue (%)', 'Dividend Payout Ratio (%)', 'Retention Rate (%)']])
-
-                st.subheader("📊 Liquidity and Dividend Visualizations")
-
-                # Different Visualizations
-                fig12 = px.line(df_liquidity, x=df_liquidity.index, y="Current Ratio", markers=True,
-                                title="Current Ratio Over Time", template="plotly_dark")
-                st.plotly_chart(fig12, use_container_width=True)
-
-                fig13 = px.bar(df_liquidity, x=df_liquidity.index, y="Free Cash Flow (FCF)",
-                               title="Free Cash Flow Over Time", template="plotly_dark")
-                st.plotly_chart(fig13, use_container_width=True)
-
-                fig14 = px.area(df_liquidity, x=df_liquidity.index, y="Capex (Capital Expenditures)",
-                                title="Capex Over Time", template="plotly_dark")
-                st.plotly_chart(fig14, use_container_width=True)
-
-                fig15 = px.scatter(df_liquidity, x=df_liquidity.index, y="FCF to Revenue (%)", size="FCF to Revenue (%)",
-                                   title="Free Cash Flow to Revenue (%)", template="plotly_dark")
-                st.plotly_chart(fig15, use_container_width=True)
-
-                fig16 = px.line(df_liquidity, x=df_liquidity.index, y="Dividend Payout Ratio (%)", markers=True,
-                                title="Dividend Payout Ratio (%) Over Time", template="plotly_dark")
-                st.plotly_chart(fig16, use_container_width=True)
-
-                fig17 = px.bar(df_liquidity, x=df_liquidity.index, y="Retention Rate (%)",
-                               title="Retention Rate (%) Over Time", template="plotly_dark")
-                st.plotly_chart(fig17, use_container_width=True)
-
-            # 📈 Stock Price and Volatility Overview Section
             if st.button("📈 Stock Price & Volatility"):
-                st.subheader("📈 Stock Price & 12-Month Volatility Overview")
-
+                st.subheader("📈 Stock Price & Volatility Overview")
                 hist = ticker.history(period="1y")
-
                 if not hist.empty:
-                    st.line_chart(hist["Close"])
-        
-                    st.subheader("🔎 12-Month Volatility Calculation")
-
-        # Daily returns
                     hist['Daily Return'] = hist['Close'].pct_change()
-
-        # Volatility (Standard Deviation of daily returns * sqrt(252 trading days))
                     volatility = hist['Daily Return'].std() * np.sqrt(252)
-
-                    st.markdown(f"""<div style="background-color:#1e1e1e; padding:20px; border-radius:10px;"><h2 style='font-size:32px; color:white;'>Annualized Volatility</h2><p style='font-size:24px; color:#00FF00;'>{volatility:.2%}</p></div>""", unsafe_allow_html=True)
+                    st.line_chart(hist['Close'])
+                    st.subheader(f"Annualized Volatility: {volatility:.2%}")
                 else:
-                    st.warning("No historical data found to calculate volatility.")
+                    st.warning("No historical data available.")
 
     except Exception as e:
-        st.error(f"⚠️ Error fetching data: {e}")
+        st.error(f"\u26a0\ufe0f Error fetching data: {e}")
