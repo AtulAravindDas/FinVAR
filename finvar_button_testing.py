@@ -9,7 +9,7 @@ def nice_divider():
     st.markdown("""---""")
 
 def styled_header(title):
-    st.markdown(f"<h2 style='color:#4CAF50;'>{title}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='color:#FFFFFF;'>{title}</h2>", unsafe_allow_html=True)
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
@@ -98,6 +98,38 @@ if user_input:
                 df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
                 df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
                 st.dataframe(df)
+                st.plotly_chart(px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.scatter(df, x=df.index, y="Financial Leverage", size="Financial Leverage", title="Financial Leverage", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", title="Net Profit Margin (%)", template="plotly_dark"), use_container_width=True)
+                st.plotly_chart(px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, title="EBITDA vs EBIT", template="plotly_dark"), use_container_width=True)
+                latest_year = df.index.max()
+                roe_latest = df.loc[latest_year, 'ROE (%)']
+                gross_margin_latest = df.loc[latest_year, 'Gross Profit Margin (%)']
+                net_margin_latest = df.loc[latest_year, 'Net Profit Margin (%)']
+                asset_turnover_latest = df.loc[latest_year, 'Asset Turnover']
+                summary_text = ""
+                if roe_latest > 15:
+                    summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n\n"
+                else:
+                    summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n\n"
+                if gross_margin_latest > 40:
+                    summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n\n"
+                elif gross_margin_latest > 20:
+                    summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n\n"
+                else:
+                    summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n\n"
+                if net_margin_latest > 10:
+                    summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n\n"
+                else:
+                    summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n\n"
+                if asset_turnover_latest > 1:
+                    summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n\n"
+                else:
+                    summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n\n"
+                st.subheader("🔍 FinVAR Summary: Profitability Overview")
+                st.info(summary_text)
 
             nice_divider()
             styled_header("📈 Growth Metrics")
@@ -106,6 +138,21 @@ if user_input:
                 growth_df = income.T[['Total Revenue', 'EBITDA']]
                 growth_df = growth_df.pct_change() * 100
                 st.dataframe(growth_df)
+                st.plotly_chart(px.line(growth_df, x=growth_df.index.year, y=['Total Revenue', 'EBITDA'], markers=True, title="Revenue and EBITDA Growth YoY (%)", template="plotly_dark"), use_container_width=True)
+                latest_year = growth_df.index.max()
+                revenue_growth = growth_df.loc[latest_year, 'Total Revenue']
+                ebitda_growth = growth_df.loc[latest_year, 'EBITDA']
+                summary_text = ""
+                if revenue_growth > 10:
+                    summary_text += f"✅ Strong Revenue Growth: {revenue_growth:.2f}%\n\n"
+                else:
+                    summary_text += f"⚠️ Moderate or Low Revenue Growth: {revenue_growth:.2f}%\n\n"
+                if ebitda_growth > 10:
+                    summary_text += f"✅ Strong EBITDA Growth: {ebitda_growth:.2f}%\n\n"
+                else:
+                    summary_text += f"⚠️ EBITDA Growth below ideal: {ebitda_growth:.2f}%\n\n"
+                st.subheader("🔍 FinVAR Summary: Growth Overview")
+                st.info(summary_text)
 
             nice_divider()
             styled_header("⚡ Leverage Insights")
@@ -116,6 +163,21 @@ if user_input:
                 leverage_df['Debt-to-Assets'] = balance['Total Liabilities Net Minority Interest'] / balance['Total Assets']
                 leverage_df.index = leverage_df.index.year
                 st.dataframe(leverage_df)
+                st.plotly_chart(px.bar(leverage_df, x=leverage_df.index, y=['Debt-to-Equity', 'Debt-to-Assets'], title="Leverage Ratios", template="plotly_dark"), use_container_width=True)
+                latest_year = leverage_df.index.max()
+                debt_equity = leverage_df.loc[latest_year, 'Debt-to-Equity']
+                debt_assets = leverage_df.loc[latest_year, 'Debt-to-Assets']
+                summary_text = ""
+                if debt_equity < 1:
+                    summary_text += f"✅ Healthy Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+                else:
+                    summary_text += f"⚠️ High Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+                if debt_assets < 0.5:
+                    summary_text += f"✅ Low Debt-to-Assets Ratio: {debt_assets:.2f}\n\n"
+                else:
+                    summary_text += f"⚠️ Higher Debt reliance: {debt_assets:.2f}\n\n"
+                st.subheader("🔍 FinVAR Summary: Leverage Overview")
+                st.info(summary_text)
 
             nice_divider()
             styled_header("💧 Liquidity & Dividend Strength")
@@ -127,6 +189,21 @@ if user_input:
                 liquidity_df['FCF'] = cashflow['Operating Cash Flow'] - cashflow['Capital Expenditure']
                 liquidity_df.index = liquidity_df.index.year
                 st.dataframe(liquidity_df)
+                st.plotly_chart(px.line(liquidity_df, x=liquidity_df.index, y=['Current Ratio', 'FCF'], markers=True, title="Liquidity & FCF Trends", template="plotly_dark"), use_container_width=True)
+                latest_year = liquidity_df.index.max()
+                current_ratio = liquidity_df.loc[latest_year, 'Current Ratio']
+                fcf = liquidity_df.loc[latest_year, 'FCF']
+                summary_text = ""
+                if current_ratio >= 1.5:
+                    summary_text += f"✅ Strong Current Ratio: {current_ratio:.2f}\n\n"
+                else:
+                    summary_text += f"⚠️ Low Current Ratio: {current_ratio:.2f}\n\n"
+                if fcf > 0:
+                    summary_text += f"✅ Positive Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+                else:
+                    summary_text += f"⚠️ Negative Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+                st.subheader("🔍 FinVAR Summary: Liquidity & Dividend Overview")
+                st.info(summary_text)
 
             nice_divider()
             styled_header("📈 Volatility Trends")
