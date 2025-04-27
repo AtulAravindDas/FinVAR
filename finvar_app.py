@@ -3,6 +3,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import joblib
+import json
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
