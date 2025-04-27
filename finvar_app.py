@@ -127,6 +127,21 @@ if user_input:
                 st.dataframe(growth_df)
                 st.plotly_chart(px.line(growth_df, x=growth_df.index.year, y=['Total Revenue', 'EBITDA'], markers=True, title="Revenue and EBITDA Growth YoY (%)", template="plotly_dark"), use_container_width=True)
 
+                summary_text = ""
+                if revenue_growth > 10:
+                    summary_text += f"✅ Strong Revenue Growth: {revenue_growth:.2f}%\n\n"
+                else:
+                    summary_text += f"⚠️ Moderate or Low Revenue Growth: {revenue_growth:.2f}%\n\n"
+
+                if ebitda_growth > 10:
+                    summary_text += f"✅ Strong EBITDA Growth: {ebitda_growth:.2f}%\n\n"
+                else:
+                    summary_text += f"⚠️ EBITDA Growth below ideal: {ebitda_growth:.2f}%\n\n"
+
+                st.subheader("🔍 FinVAR Summary: Growth Overview")
+                st.info(summary_text)
+
+
             if st.button("⚡ Leverage Overview"):
                 st.subheader("⚡ Leverage Ratios Overview")
                 balance = ticker.balance_sheet.T
@@ -137,6 +152,25 @@ if user_input:
                 st.dataframe(leverage_df)
                 st.plotly_chart(px.bar(leverage_df, x=leverage_df.index, y=['Debt-to-Equity', 'Debt-to-Assets'], title="Leverage Ratios", template="plotly_dark"), use_container_width=True)
 
+                latest_year = leverage_df.index.max()
+                debt_equity = leverage_df.loc[latest_year, 'Debt-to-Equity']
+                debt_assets = leverage_df.loc[latest_year, 'Debt-to-Assets']
+                
+                summary_text = ""
+                if debt_equity < 1:
+                    summary_text += f"✅ Healthy Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+                else:
+                    summary_text += f"⚠️ High Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+
+                if debt_assets < 0.5:
+                    summary_text += f"✅ Low Debt-to-Assets Ratio: {debt_assets:.2f}\n\n"
+                else:
+                    summary_text += f"⚠️ Higher Debt reliance: {debt_assets:.2f}\n\n"
+
+                st.subheader("🔍 FinVAR Summary: Leverage Overview")
+                st.info(summary_text)
+
+            
             if st.button("💧 Liquidity & Dividend Overview"):
                 st.subheader("💧 Liquidity and Dividend Overview")
                 balance = ticker.balance_sheet.T
@@ -147,6 +181,25 @@ if user_input:
                 liquidity_df.index = liquidity_df.index.year
                 st.dataframe(liquidity_df)
                 st.plotly_chart(px.line(liquidity_df, x=liquidity_df.index, y=['Current Ratio', 'FCF'], markers=True, title="Liquidity & FCF Trends", template="plotly_dark"), use_container_width=True)
+
+                latest_year = liquidity_df.index.max()
+                current_ratio = liquidity_df.loc[latest_year, 'Current Ratio']
+                fcf = liquidity_df.loc[latest_year, 'FCF']
+
+                summary_text = ""
+                if current_ratio >= 1.5:
+                    summary_text += f"✅ Strong Current Ratio: {current_ratio:.2f}\n\n"
+                else:
+                    summary_text += f"⚠️ Low Current Ratio: {current_ratio:.2f}\n\n"
+
+                if fcf > 0:
+                    summary_text += f"✅ Positive Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+                else:
+                    summary_text += f"⚠️ Negative Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+
+                st.subheader("🔍 FinVAR Summary: Liquidity & Dividend Overview")
+                st.info(summary_text)
+
 
             if st.button("📈 Stock Price & Volatility"):
                 st.subheader("📈 Stock Price & Volatility Overview")
