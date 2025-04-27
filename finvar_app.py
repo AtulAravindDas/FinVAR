@@ -263,11 +263,7 @@ if user_input:
                     revenue_3yr_avg = revenue  # fallback
             
                     # Build feature array
-                    features = np.array([[ 
-                        pe_exi, npm, opmad, roa, roe, de_ratio, intcov_ratio, curr_ratio,
-                        revenue_growth, eps_growth, roa_to_revenue, roe_to_roa,
-                        debt_to_income, intcov_per_curr, opmad_to_npm, eps_3yr_avg, revenue_3yr_avg
-                    ]])
+                    features = np.array([['EPS', 'eps_3yr_avg', 'roe', 'npm', 'opmad_to_npm','revenue_3yr_avg', 'intcov_per_curr', 'revenue_growth', 'roa_to_revenue', 'intcov_ratio']])
             
                     # Predict
                     features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
