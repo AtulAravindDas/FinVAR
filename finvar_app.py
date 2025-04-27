@@ -4,13 +4,13 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import joblib
-import json
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
+model=joblib.load(final_eps_predictor.pkl)
 # Initialize session state keys
 if "show_description" not in st.session_state:
     st.session_state["show_description"] = False
