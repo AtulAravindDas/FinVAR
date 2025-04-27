@@ -3,12 +3,12 @@
 **By: Atul Aravind Das & Dhinesh Mahalingam**
 
 ---
+Your financial assistant referee – reviewing every ticker, flagging every risk.
+---
 
-> Your financial assistant referee – reviewing every ticker, flagging every risk.
-
-🧠 Understand the market.  
-🚨 Flag the risks.  
-💼 Make smarter investment moves.
+🧠**Understand the market.**  
+🚨**Flag the risks.**  
+💼**Make smarter investment moves.**
 
 ---
 
@@ -65,4 +65,6 @@
 
 ## 💻 How to Run it
 
-Use the link given here: 
+Use the link given here: https://finvar-vx73xpw7zpwvqnryawbcen.streamlit.app/
+
+
