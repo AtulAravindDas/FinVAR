@@ -11,7 +11,7 @@ st.title("📊 FinVAR – Your Financial Assistant Referee")
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
 model=joblib.load(final_eps_predictor.pkl)
-# Initialize session state keys
+
 if "show_description" not in st.session_state:
     st.session_state["show_description"] = False
 if "show_price" not in st.session_state:
@@ -218,6 +218,60 @@ if user_input:
                     st.subheader(f"Annualized Volatility: {volatility:.2%}")
                 else:
                     st.warning("No historical data available.")
+            
+            if st.button("🔮 Predict Next Year EPS (2025)"):
+                st.subheader("🔮 EPS Prediction for 2025")
+                try:
+                    income = ticker.financials
+                    balance = ticker.balance_sheet
+                    cashflow = ticker.cashflow
+                    info = ticker.info
 
+                    income = income.T
+                    balance = balance.T
+                    cashflow = cashflow.T
+
+                    latest_year = income.index.max().year
+
+        
+                    pe_exi = info.get('trailingPE', np.nan)
+                    npm = income.loc[income.index[-1], 'Net Income'] / income.loc[income.index[-1], 'Total Revenue']
+                    opmad = income.loc[income.index[-1], 'Operating Income'] / income.loc[income.index[-1], 'Total Revenue']
+                    roa = income.loc[income.index[-1], 'Net Income'] / balance.loc[balance.index[-1], 'Total Assets']
+                    roe = income.loc[income.index[-1], 'Net Income'] / balance.loc[balance.index[-1], 'Common Stock Equity']
+                    de_ratio = balance.loc[balance.index[-1], 'Total Liabilities Net Minority Interest'] / balance.loc[balance.index[-1], 'Common Stock Equity']
+                    intcov_ratio = income.loc[income.index[-1], 'EBIT'] / income.loc[income.index[-1], 'Interest Expense']
+                    curr_ratio = balance.loc[balance.index[-1], 'Current Assets'] / balance.loc[balance.index[-1], 'Current Liabilities']
+                    revenue = income.loc[income.index[-1], 'Total Revenue']
+                    eps = info.get('epsTrailingTwelveMonths', np.nan)
+            
+                    # Calculate engineered features
+                    previous_revenue = income.loc[income.index[-2], 'Total Revenue'] if len(income.index) > 1 else np.nan
+                    previous_eps = info.get('epsTrailingTwelveMonths', np.nan) # fallback if past EPS not available
+            
+                    revenue_growth = ((revenue - previous_revenue) / previous_revenue) if previous_revenue else 0
+                    eps_growth = 0  # fallback
+                    
+                    roa_to_revenue = roa / revenue if revenue != 0 else 0
+                    roe_to_roa = roe / roa if roa != 0 else 0
+                    debt_to_income = de_ratio / revenue if revenue != 0 else 0
+                    intcov_per_curr = intcov_ratio / curr_ratio if curr_ratio != 0 else 0
+                    opmad_to_npm = opmad / npm if npm != 0 else 0
+            
+                    eps_3yr_avg = eps  # fallback
+                    revenue_3yr_avg = revenue  # fallback
+            
+                    # Build feature array
+                    features = np.array([[ 
+                        pe_exi, npm, opmad, roa, roe, de_ratio, intcov_ratio, curr_ratio,
+                        revenue_growth, eps_growth, roa_to_revenue, roe_to_roa,
+                        debt_to_income, intcov_per_curr, opmad_to_npm, eps_3yr_avg, revenue_3yr_avg
+                    ]])
+            
+                    # Predict
+                    predicted_eps = model.predict(features)[0]
+            
+                    st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
+                
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
