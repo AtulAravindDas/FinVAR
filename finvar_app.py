@@ -273,8 +273,8 @@ if user_input:
                     predicted_eps = model.predict(features)[0]
             
                     st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
-                except Exception:
-                    st.error("Error in prediction")
+                except Exception as e:
+                    st.error(f"Error in prediction:{e}")
                     
                 
     except Exception as e:
