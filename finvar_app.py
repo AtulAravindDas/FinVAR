@@ -21,21 +21,21 @@ if user_input:
         info = ticker.info
 
         if not info or 'longName' not in info:
-            st.error("\u274c No company information found. Please enter a valid ticker.")
+            st.error("❌ No company information found. Please enter a valid ticker.")
         else:
             company_name = info.get('longName', 'N/A')
-            st.subheader("\ud83c\udfe2 Company Name")
+            st.subheader("🏢 Company Name")
             st.write(company_name)
 
             if st.button("Show/Hide Description"):
                 st.session_state["show_description"] = not st.session_state["show_description"]
 
             if st.session_state["show_description"]:
-                st.subheader("\ud83d\udcdd Company Description")
+                st.subheader("📝 Company Description")
                 description = info.get('longBusinessSummary', 'N/A')
                 st.write(description)
 
-            if st.button("Display Current Price \ud83d\udcb0"):
+            if st.button("Display Current Price 💰"):
                 st.session_state["show_price"] = not st.session_state["show_price"]
 
             if st.session_state["show_price"]:
@@ -57,8 +57,8 @@ if user_input:
                 else:
                     st.warning("Stock price data not available.")
 
-            if st.button("\ud83d\udcd8 Profitability Ratios"):
-                st.subheader("\ud83d\udcc8 Profitability Ratios Overview")
+            if st.button("📘 Profitability Ratios"):
+                st.subheader("📘 Profitability Ratios Overview")
                 income = ticker.financials
                 balance = ticker.balance_sheet
                 ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
@@ -85,7 +85,7 @@ if user_input:
                 df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
                 df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
                 st.dataframe(df)
-                st.subheader("\ud83d\udcc8 Interactive Financial Visuals")
+                st.subheader("📈 Interactive Financial Visuals")
                 st.plotly_chart(px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark"), use_container_width=True)
                 st.plotly_chart(px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark"), use_container_width=True)
                 st.plotly_chart(px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark"), use_container_width=True)
@@ -120,7 +120,7 @@ if user_input:
                 st.info(summary_text)
 
             if st.button("📈 Growth Overview"):
-                st.subheader("\ud83d\udcc8 Revenue and EBITDA Growth Overview")
+                st.subheader("📈 Revenue and EBITDA Growth Overview")
                 income = ticker.financials
                 growth_df = income.T[['Total Revenue', 'EBITDA']]
                 growth_df = growth_df.pct_change() * 100
@@ -160,4 +160,4 @@ if user_input:
                     st.warning("No historical data available.")
 
     except Exception as e:
-        st.error(f"\u26a0\ufe0f Error fetching data: {e}")
+        st.error(f"⚠️ Error fetching data: {e}")
