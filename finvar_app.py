@@ -5,7 +5,7 @@ import numpy as np
 import plotly.express as px
 
 st.set_page_config(page_title="FinVAR", layout="centered")
-st.title("\ud83d\udcca FinVAR – Your Financial Assistant Referee")
+st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
