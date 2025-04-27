@@ -270,6 +270,8 @@ if user_input:
                     ]])
             
                     # Predict
+                    features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
+
                     predicted_eps = model.predict(features)[0]
             
                     st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
