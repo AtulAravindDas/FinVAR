@@ -10,7 +10,7 @@ st.title("📊 FinVAR – Your Financial Assistant Referee")
 
 user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
 
-model=joblib.load(final_eps_predictor.pkl)
+model=joblib.load("final_eps_predictor.pkl")
 
 if "show_description" not in st.session_state:
     st.session_state["show_description"] = False
