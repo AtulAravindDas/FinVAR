@@ -72,32 +72,73 @@ if user_input:
             nice_divider()
             styled_header("📘 Profitability Analysis")
             if st.button("📘 Profitability Ratios"):
-                # Your Profitability Ratios code block
-                pass
+                income = ticker.financials
+                balance = ticker.balance_sheet
+                ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
+                ideal_balance_order = ["Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"]
+                income = income.loc[[item for item in ideal_income_order if item in income.index]]
+                balance = balance.loc[[item for item in ideal_balance_order if item in balance.index]]
+                income = income.T
+                balance = balance.T
+                df = pd.DataFrame()
+                df['Net Income'] = income['Net Income']
+                df['Gross Profit'] = income['Gross Profit']
+                df['Total Revenue'] = income['Total Revenue']
+                df['EBITDA'] = income['EBITDA']
+                df['EBIT'] = income['EBIT']
+                df['Shareholders Equity'] = balance['Common Stock Equity']
+                df['Total Assets'] = balance['Total Assets']
+                df['Total Liabilities'] = balance['Total Liabilities Net Minority Interest']
+                df = df.dropna()
+                df = df.apply(pd.to_numeric, errors='coerce').dropna()
+                df.index = df.index.year
+                df['ROE (%)'] = (df['Net Income'] / df['Shareholders Equity']) * 100
+                df['Gross Profit Margin (%)'] = (df['Gross Profit'] / df['Total Revenue']) * 100
+                df['Asset Turnover'] = df['Total Revenue'] / df['Total Assets']
+                df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
+                df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
+                st.dataframe(df)
 
             nice_divider()
             styled_header("📈 Growth Metrics")
             if st.button("📈 Growth Overview"):
-                # Your Growth Overview code block
-                pass
+                income = ticker.financials
+                growth_df = income.T[['Total Revenue', 'EBITDA']]
+                growth_df = growth_df.pct_change() * 100
+                st.dataframe(growth_df)
 
             nice_divider()
             styled_header("⚡ Leverage Insights")
             if st.button("⚡ Leverage Overview"):
-                # Your Leverage Overview code block
-                pass
+                balance = ticker.balance_sheet.T
+                leverage_df = pd.DataFrame()
+                leverage_df['Debt-to-Equity'] = balance['Total Liabilities Net Minority Interest'] / balance['Common Stock Equity']
+                leverage_df['Debt-to-Assets'] = balance['Total Liabilities Net Minority Interest'] / balance['Total Assets']
+                leverage_df.index = leverage_df.index.year
+                st.dataframe(leverage_df)
 
             nice_divider()
             styled_header("💧 Liquidity & Dividend Strength")
             if st.button("💧 Liquidity & Dividend Overview"):
-                # Your Liquidity Overview code block
-                pass
+                balance = ticker.balance_sheet.T
+                cashflow = ticker.cashflow.T
+                liquidity_df = pd.DataFrame()
+                liquidity_df['Current Ratio'] = balance['Current Assets'] / balance['Current Liabilities']
+                liquidity_df['FCF'] = cashflow['Operating Cash Flow'] - cashflow['Capital Expenditure']
+                liquidity_df.index = liquidity_df.index.year
+                st.dataframe(liquidity_df)
 
             nice_divider()
             styled_header("📈 Volatility Trends")
             if st.button("📈 Stock Price & Volatility"):
-                # Your Volatility Overview code block
-                pass
+                hist = ticker.history(period="1y")
+                if not hist.empty:
+                    hist['Daily Return'] = hist['Close'].pct_change()
+                    volatility = hist['Daily Return'].std() * np.sqrt(252)
+                    st.line_chart(hist['Close'])
+                    st.subheader(f"Annualized Volatility: {volatility:.2%}")
+                else:
+                    st.warning("No historical data available.")
 
     except Exception as e:
         st.error(f"⚠️ Error fetching data: {e}")
