@@ -127,6 +127,11 @@ if user_input:
                 st.dataframe(growth_df)
                 st.plotly_chart(px.line(growth_df, x=growth_df.index.year, y=['Total Revenue', 'EBITDA'], markers=True, title="Revenue and EBITDA Growth YoY (%)", template="plotly_dark"), use_container_width=True)
 
+                latest_year = growth_df.index.max()
+                revenue_growth = growth_df.loc[latest_year, 'Total Revenue']
+                ebitda_growth = growth_df.loc[latest_year, 'EBITDA']
+
+
                 summary_text = ""
                 if revenue_growth > 10:
                     summary_text += f"✅ Strong Revenue Growth: {revenue_growth:.2f}%\n\n"
