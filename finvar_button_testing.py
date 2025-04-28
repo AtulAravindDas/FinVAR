@@ -317,6 +317,7 @@ elif st.session_state.page=="liquidity":
 
 elif st.session_state.page=="volatility":
     st.subheader("📈 Stock Price & Volatility Overview")
+    ticker = load_ticker(st.session_state.ticker)
     hist = ticker.history(period="1y")
     if not hist.empty:
         hist['Daily Return'] = hist['Close'].pct_change()
@@ -330,6 +331,7 @@ elif st.session_state.page=="volatility":
 
 elif st.session_state.page=="eps_prediction":
     st.subheader("🔮 EPS Prediction for 2025")
+    ticker = load_ticker(st.session_state.ticker)
     try:
         income = ticker.financials
         balance = ticker.balance_sheet
