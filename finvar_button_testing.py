@@ -24,6 +24,10 @@ def fresh_start():
     st.session_state.ticker = ''
     st.session_state.page = 'fresh'
 
+@st.cache_resource
+def load_ticker(ticker_symbol):
+    return yf.Ticker(ticker_symbol)
+
 if st.session_state.page == 'home':
     st.title("📊 FinVAR – Financial Assistant Referee")
     st.markdown("""
@@ -110,7 +114,7 @@ elif st.session_state.page == 'price':
 
 elif st.session_state.page == 'profitability':
     st.subheader("📘 Profitability Ratios Overview")
-    ticker = yf.Ticker(st.session_state.ticker)
+    ticker = load_ticker(st.session_state.ticker)
 
     income = ticker.financials
     balance = ticker.balance_sheet
@@ -174,7 +178,7 @@ elif st.session_state.page == 'profitability':
 
 elif st.session_state.page == "growth":
     st.subheader("📈 Expanded Growth Overview")
-    ticker = yf.Ticker(st.session_state.ticker)
+    ticker = load_ticker(st.session_state.ticker)
     income = ticker.financials
     cashflow = ticker.cashflow
 
@@ -251,7 +255,7 @@ elif st.session_state.page == "growth":
 
 elif st.session_state.page=="leverage":
     st.subheader("⚡ Leverage Ratios Overview")
-    ticker = yf.Ticker(st.session_state.ticker)
+    ticker = load_ticker(st.session_state.ticker)
     balance = ticker.balance_sheet.T
     leverage_df = pd.DataFrame()
     leverage_df['Debt-to-Equity'] = balance['Total Liabilities Net Minority Interest'] / balance['Common Stock Equity']
@@ -281,7 +285,7 @@ elif st.session_state.page=="leverage":
     
 elif st.session_state.page=="liquidity":
     st.subheader("💧 Liquidity and Dividend Overview")
-    ticker=yf.Ticker(st.session_state.ticker)
+    ticker = load_ticker(st.session_state.ticker)
     balance = ticker.balance_sheet.T
     cashflow = ticker.cashflow.T
     liquidity_df = pd.DataFrame()
