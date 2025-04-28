@@ -50,15 +50,6 @@ if st.session_state.page == 'home':
     - **Stock Price and Volatility Analysis:** 1-year trend analysis and volatility.
     - **EPS Prediction Engine:** Trained ML model forecasts future EPS based on real-time financials.
 
-    ---
-
-    ## 🛠️ Tech Stack
-    - Python
-    - Streamlit
-    - Scikit-learn
-    - Plotly
-    - Yahoo Finance API (via yfinance)
-    """, unsafe_allow_html=True)
-
+   
     st.button("🚀 Enter FinVAR App", on_click=go_app)
     
