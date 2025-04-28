@@ -161,4 +161,32 @@ elif st.session_state.page == 'profitability':
     st.info(summary_text)
     st.button("⬅️ Back", on_click=go_app)
 
+elif st.session_state.page=="growth":
+    st.subheader("📈 Revenue and EBITDA Growth Overview")
+    ticker = yf.Ticker(st.session_state.ticker)
+    income = ticker.financials
+    growth_df = income.T[['Total Revenue', 'EBITDA']]
+    growth_df = growth_df.pct_change() * 100
+    st.plotly_chart(px.line(growth_df, x=growth_df.index.year, y=['Total Revenue', 'EBITDA'], markers=True, title="Revenue and EBITDA Growth YoY (%)", template="plotly_dark"), use_container_width=True)
+
+    latest_year = growth_df.index.max()
+    revenue_growth = growth_df.loc[latest_year, 'Total Revenue']
+    ebitda_growth = growth_df.loc[latest_year, 'EBITDA']
+
+
+    summary_text = ""
+    if revenue_growth > 10:
+        summary_text += f"✅ Strong Revenue Growth: {revenue_growth:.2f}%\n\n"
+    else:
+        summary_text += f"⚠️ Moderate or Low Revenue Growth: {revenue_growth:.2f}%\n\n"
+
+    if ebitda_growth > 10:
+        summary_text += f"✅ Strong EBITDA Growth: {ebitda_growth:.2f}%\n\n"
+    else:
+        summary_text += f"⚠️ EBITDA Growth below ideal: {ebitda_growth:.2f}%\n\n"
+
+    st.subheader("🔍 FinVAR Summary: Growth Overview")
+    st.info(summary_text)
+
+
 
