@@ -161,33 +161,78 @@ elif st.session_state.page == 'profitability':
     st.info(summary_text)
     st.button("⬅️ Back", on_click=go_app)
 
-elif st.session_state.page=="growth":
-    st.subheader("📈 Revenue and EBITDA Growth Overview")
+elif st.session_state.page == "growth":
+    st.subheader("📈 Expanded Growth Overview")
     ticker = yf.Ticker(st.session_state.ticker)
     income = ticker.financials
-    growth_df = income.T[['Total Revenue', 'EBITDA']]
-    growth_df = growth_df.pct_change() * 100
-    st.plotly_chart(px.line(growth_df, x=growth_df.index.year, y=['Total Revenue', 'EBITDA'], markers=True, title="Revenue and EBITDA Growth YoY (%)", template="plotly_dark"), use_container_width=True)
+    cashflow = ticker.cashflow
 
-    latest_year = growth_df.index.max()
-    revenue_growth = growth_df.loc[latest_year, 'Total Revenue']
-    ebitda_growth = growth_df.loc[latest_year, 'EBITDA']
+    growth_df = pd.DataFrame()
+    growth_df['Total Revenue'] = income.T['Total Revenue']
+    growth_df['EBITDA'] = income.T['EBITDA']
+    growth_df['Net Income'] = income.T['Net Income']
+    growth_df['Operating Cash Flow'] = cashflow.T['Operating Cash Flow']
 
+    growth_pct_df = growth_df.pct_change() * 100
+
+    st.plotly_chart(
+        px.line(
+            growth_pct_df,
+            x=growth_pct_df.index.year,
+            y=['Total Revenue', 'EBITDA', 'Net Income', 'Operating Cash Flow'],
+            markers=True,
+            title="YoY Growth Trends (%)",
+            template="plotly_dark"
+        ),
+        use_container_width=True
+    )
+
+    latest_valid_data = growth_pct_df.dropna().tail(1)
+
+    if not latest_valid_data.empty:
+        latest_year = latest_valid_data.index[0].year
+        revenue_growth = latest_valid_data['Total Revenue'].values[0]
+        ebitda_growth = latest_valid_data['EBITDA'].values[0]
+        net_income_growth = latest_valid_data['Net Income'].values[0]
+        op_cashflow_growth = latest_valid_data['Operating Cash Flow'].values[0]
+    else:
+        revenue_growth = ebitda_growth = net_income_growth = op_cashflow_growth = None
 
     summary_text = ""
-    if revenue_growth > 10:
-        summary_text += f"✅ Strong Revenue Growth: {revenue_growth:.2f}%\n\n"
-    else:
-        summary_text += f"⚠️ Moderate or Low Revenue Growth: {revenue_growth:.2f}%\n\n"
 
-    if ebitda_growth > 10:
-        summary_text += f"✅ Strong EBITDA Growth: {ebitda_growth:.2f}%\n\n"
+    if revenue_growth is not None:
+        if revenue_growth > 10:
+            summary_text += f"✅ Strong Revenue Growth: {revenue_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ Moderate or Low Revenue Growth: {revenue_growth:.2f}%\n\n"
     else:
-        summary_text += f"⚠️ EBITDA Growth below ideal: {ebitda_growth:.2f}%\n\n"
+        summary_text += "⚠️ Revenue Growth data unavailable.\n\n"
+
+    if ebitda_growth is not None:
+        if ebitda_growth > 10:
+            summary_text += f"✅ Strong EBITDA Growth: {ebitda_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ EBITDA Growth below ideal: {ebitda_growth:.2f}%\n\n"
+    else:
+        summary_text += "⚠️ EBITDA Growth data unavailable.\n\n"
+
+    if net_income_growth is not None:
+        if net_income_growth > 10:
+            summary_text += f"✅ Strong Net Income Growth: {net_income_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ Weak Net Income Growth: {net_income_growth:.2f}%\n\n"
+    else:
+        summary_text += "⚠️ Net Income Growth data unavailable.\n\n"
+
+    if op_cashflow_growth is not None:
+        if op_cashflow_growth > 10:
+            summary_text += f"✅ Strong Operating Cash Flow Growth: {op_cashflow_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ Weak Operating Cash Flow Growth: {op_cashflow_growth:.2f}%\n\n"
+    else:
+        summary_text += "⚠️ Operating Cash Flow Growth data unavailable.\n\n"
 
     st.subheader("🔍 FinVAR Summary: Growth Overview")
     st.info(summary_text)
+
     st.button("⬅️ Back", on_click=go_app)
-
-
-
