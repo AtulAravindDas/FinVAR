@@ -187,6 +187,7 @@ elif st.session_state.page=="growth":
 
     st.subheader("🔍 FinVAR Summary: Growth Overview")
     st.info(summary_text)
+    st.button("⬅️ Back", on_click=go_app)
 
 
 
