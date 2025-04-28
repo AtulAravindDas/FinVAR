@@ -167,37 +167,40 @@ elif st.session_state.page == "growth":
     income = ticker.financials
     cashflow = ticker.cashflow
 
+    # Create Growth DataFrame
     growth_df = pd.DataFrame()
-    growth_df['Total Revenue'] = income.T['Total Revenue']
-    growth_df['EBITDA'] = income.T['EBITDA']
-    growth_df['Net Income'] = income.T['Net Income']
-    growth_df['Operating Cash Flow'] = cashflow.T['Operating Cash Flow']
-
-    growth_pct_df = growth_df.pct_change() * 100
+    growth_df['Total Revenue'] = income.T.get('Total Revenue')
+    growth_df['EBITDA'] = income.T.get('EBITDA')
+    growth_df['Net Income'] = income.T.get('Net Income')
+    growth_df['Operating Cash Flow'] = cashflow.T.get('Operating Cash Flow')
 
     st.plotly_chart(
         px.line(
-            growth_pct_df,
-            x=growth_pct_df.index.year,
-            y=['Total Revenue', 'EBITDA', 'Net Income', 'Operating Cash Flow'],
+            growth_df,
+            x=growth_df.index.year,
+            y=growth_df.columns,
             markers=True,
-            title="YoY Growth Trends (%)",
+            title="Raw Financial Metrics Over Time",
             template="plotly_dark"
         ),
         use_container_width=True
     )
 
-    latest_valid_data = growth_pct_df.dropna().tail(1)
+    # Calculate Growth Manually
+    latest_years = growth_df.dropna().index.sort_values()[-2:]  # Last 2 available years
 
-    if not latest_valid_data.empty:
-        latest_year = latest_valid_data.index[0].year
-        revenue_growth = latest_valid_data['Total Revenue'].values[0]
-        ebitda_growth = latest_valid_data['EBITDA'].values[0]
-        net_income_growth = latest_valid_data['Net Income'].values[0]
-        op_cashflow_growth = latest_valid_data['Operating Cash Flow'].values[0]
+    if len(latest_years) == 2:
+        prev_year = latest_years[0]
+        latest_year = latest_years[1]
+
+        revenue_growth = ((growth_df.loc[latest_year, 'Total Revenue'] - growth_df.loc[prev_year, 'Total Revenue']) / growth_df.loc[prev_year, 'Total Revenue']) * 100
+        ebitda_growth = ((growth_df.loc[latest_year, 'EBITDA'] - growth_df.loc[prev_year, 'EBITDA']) / growth_df.loc[prev_year, 'EBITDA']) * 100
+        net_income_growth = ((growth_df.loc[latest_year, 'Net Income'] - growth_df.loc[prev_year, 'Net Income']) / growth_df.loc[prev_year, 'Net Income']) * 100
+        op_cashflow_growth = ((growth_df.loc[latest_year, 'Operating Cash Flow'] - growth_df.loc[prev_year, 'Operating Cash Flow']) / growth_df.loc[prev_year, 'Operating Cash Flow']) * 100
     else:
         revenue_growth = ebitda_growth = net_income_growth = op_cashflow_growth = None
 
+    # Build Summary Text
     summary_text = ""
 
     if revenue_growth is not None:
