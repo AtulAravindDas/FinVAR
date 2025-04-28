@@ -237,3 +237,33 @@ elif st.session_state.page == "growth":
     st.info(summary_text)
 
     st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page=="leverage":
+    st.subheader("⚡ Leverage Ratios Overview")
+    balance = ticker.balance_sheet.T
+    leverage_df = pd.DataFrame()
+    leverage_df['Debt-to-Equity'] = balance['Total Liabilities Net Minority Interest'] / balance['Common Stock Equity']
+    leverage_df['Debt-to-Assets'] = balance['Total Liabilities Net Minority Interest'] / balance['Total Assets']
+    leverage_df.index = leverage_df.index.year
+    st.plotly_chart(px.bar(leverage_df, x=leverage_df.index, y=['Debt-to-Equity', 'Debt-to-Assets'], title="Leverage Ratios", template="plotly_dark"), use_container_width=True)
+
+    latest_year = leverage_df.index.max()
+    debt_equity = leverage_df.loc[latest_year, 'Debt-to-Equity']
+    debt_assets = leverage_df.loc[latest_year, 'Debt-to-Assets']
+    
+    summary_text = ""
+    if debt_equity < 1:
+        summary_text += f"✅ Healthy Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+    else:
+        summary_text += f"⚠️ High Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+
+    if debt_assets < 0.5:
+        summary_text += f"✅ Low Debt-to-Assets Ratio: {debt_assets:.2f}\n\n"
+    else:
+        summary_text += f"⚠️ Higher Debt reliance: {debt_assets:.2f}\n\n"
+
+    st.subheader("🔍 FinVAR Summary: Leverage Overview")
+    st.info(summary_text)
+
+    st.button("⬅️ Back", on_click=go_app)
+
