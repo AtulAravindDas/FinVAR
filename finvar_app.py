@@ -47,8 +47,10 @@ if st.session_state.page == 'home':
     - **Growth Overview:** Revenue Growth and EBITDA Growth visualization.
     - **Leverage and Liquidity Overview:** Debt Ratios and Free Cash Flow.
     - **Stock Price and Volatility Analysis:** 1-year trend analysis and volatility.
-    - **EPS Prediction Engine:** Trained ML model forecasts future EPS based on real-time financials.""")
-
+    - **EPS Prediction Engine:** Trained ML model forecasts future EPS based on real-time financials.
+    ---
+    Click the button below to start!""")
+    
    
     st.button("🚀 Enter FinVAR App", on_click=go_app)
 elif st.session_state.page == 'app':
