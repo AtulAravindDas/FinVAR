@@ -32,14 +32,11 @@ if st.session_state.page == 'home':
     🧠 **Understand the market.**  
     🚨 **Flag the risks.**  
     💼 **Make smarter investment moves.**
-
     ---
-
     ## 🚀 What is FinVAR?
     FinVAR is a financial visualization and analysis tool that not only presents key profitability, growth, leverage, and liquidity metrics, but also uses Machine Learning to predict the future Earnings Per Share (EPS) of companies — helping investors and analysts make better-informed decisions.
 
     ---
-
     ## 📈 Key Features
     - **Company Insights:** Real-time company descriptions and financials.
     - **Profitability Overview:** ROE, Gross Margin, Net Margin, Asset Turnover, Financial Leverage.
