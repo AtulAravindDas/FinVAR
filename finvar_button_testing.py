@@ -126,7 +126,6 @@ elif st.session_state.page == 'profitability':
     df['Asset Turnover'] = df['Total Revenue'] / df['Total Assets']
     df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
     df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
-    st.dataframe(df)
     st.subheader("📈 Interactive Financial Visuals")
     st.plotly_chart(px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark"), use_container_width=True)
     st.plotly_chart(px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark"), use_container_width=True)
