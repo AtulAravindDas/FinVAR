@@ -315,3 +315,70 @@ elif st.session_state.page=="liquidity":
 
     st.button("⬅️ Back", on_click=go_app)
 
+elif st.session_state.page=="volatility":
+    st.subheader("📈 Stock Price & Volatility Overview")
+    hist = ticker.history(period="1y")
+    if not hist.empty:
+        hist['Daily Return'] = hist['Close'].pct_change()
+        volatility = hist['Daily Return'].std() * np.sqrt(252)
+        st.line_chart(hist['Close'])
+        st.subheader(f"Annualized Volatility: {volatility:.2%}")
+    else:
+        st.warning("No historical data available.")
+
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page=="eps_prediction":
+    st.subheader("🔮 EPS Prediction for 2025")
+    try:
+        income = ticker.financials
+        balance = ticker.balance_sheet
+        cashflow = ticker.cashflow
+        info = ticker.info
+
+        income = income.T
+        balance = balance.T
+        cashflow = cashflow.T
+
+        latest_year = income.index.max().year
+
+
+        pe_exi = info.get('trailingPE', np.nan)
+        npm = income.loc[income.index[-1], 'Net Income'] / income.loc[income.index[-1], 'Total Revenue']
+        opmad = income.loc[income.index[-1], 'Operating Income'] / income.loc[income.index[-1], 'Total Revenue']
+        roa = income.loc[income.index[-1], 'Net Income'] / balance.loc[balance.index[-1], 'Total Assets']
+        roe = income.loc[income.index[-1], 'Net Income'] / balance.loc[balance.index[-1], 'Common Stock Equity']
+        de_ratio = balance.loc[balance.index[-1], 'Total Liabilities Net Minority Interest'] / balance.loc[balance.index[-1], 'Common Stock Equity']
+        intcov_ratio = income.loc[income.index[-1], 'EBIT'] / income.loc[income.index[-1], 'Interest Expense']
+        curr_ratio = balance.loc[balance.index[-1], 'Current Assets'] / balance.loc[balance.index[-1], 'Current Liabilities']
+        revenue = income.loc[income.index[-1], 'Total Revenue']
+        eps = info.get('epsTrailingTwelveMonths', np.nan)
+
+        
+        previous_revenue = income.loc[income.index[-2], 'Total Revenue'] if len(income.index) > 1 else np.nan
+        previous_eps = info.get('epsTrailingTwelveMonths', np.nan) # fallback if past EPS not available
+
+        revenue_growth = ((revenue - previous_revenue) / previous_revenue) if previous_revenue else 0
+        eps_growth = 0  
+        
+        roa_to_revenue = roa / revenue if revenue != 0 else 0
+        roe_to_roa = roe / roa if roa != 0 else 0
+        debt_to_income = de_ratio / revenue if revenue != 0 else 0
+        intcov_per_curr = intcov_ratio / curr_ratio if curr_ratio != 0 else 0
+        opmad_to_npm = opmad / npm if npm != 0 else 0
+
+        eps_3yr_avg = eps  
+        revenue_3yr_avg = revenue  
+
+        features = np.array([[ eps, eps_3yr_avg, roe, npm, opmad_to_npm,revenue_3yr_avg, intcov_per_curr, revenue_growth,roa_to_revenue, intcov_ratio]])
+
+
+        features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
+
+        predicted_eps = model.predict(features)[0]
+
+        st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
+    except Exception as e:
+        st.error(f"Error in prediction:{e}")
+        
+
