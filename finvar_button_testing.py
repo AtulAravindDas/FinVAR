@@ -99,6 +99,8 @@ elif st.session_state.page == 'price':
 
 elif st.session_state.page == 'profitability':
     st.subheader("📘 Profitability Ratios Overview")
+    ticker = yf.Ticker(st.session_state.ticker)
+
     income = ticker.financials
     balance = ticker.balance_sheet
     ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
