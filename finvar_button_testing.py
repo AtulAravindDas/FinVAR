@@ -27,8 +27,6 @@ def fresh_start():
 if st.session_state.page == 'home':
     st.title("📊 FinVAR – Financial Assistant Referee")
     st.markdown("""
-    ### By: Atul Aravind Das & Dhinesh Mahalingam
-
     Your financial assistant referee – reviewing every ticker, flagging every risk.
 
     🧠 **Understand the market.**  
