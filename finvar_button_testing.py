@@ -7,10 +7,6 @@ import joblib
 import sklearn
 
 st.set_page_config(page_title="FinVAR", layout="centered")
-st.title("📊 FinVAR – Your Financial Assistant Referee")
-
-user_input = st.text_input("Enter the ticker name (e.g., AAPL):")
-
 model=joblib.load("final_eps_predictor.pkl")
 
 if 'page' not in st.session_state:
