@@ -240,6 +240,7 @@ elif st.session_state.page == "growth":
 
 elif st.session_state.page=="leverage":
     st.subheader("⚡ Leverage Ratios Overview")
+    ticker = yf.Ticker(st.session_state.ticker)
     balance = ticker.balance_sheet.T
     leverage_df = pd.DataFrame()
     leverage_df['Debt-to-Equity'] = balance['Total Liabilities Net Minority Interest'] / balance['Common Stock Equity']
