@@ -29,7 +29,7 @@ def load_ticker(ticker_symbol):
     return yf.Ticker(ticker_symbol)
 
 if st.session_state.page == 'home':
-    st.image("FinVAR.png",width=500)
+    st.image("FinVAR.png",use_column_width=True)
     st.title("📊 FinVAR – Financial Assistant Referee")
     st.markdown("""
     Your financial assistant referee – reviewing every ticker, flagging every risk.
