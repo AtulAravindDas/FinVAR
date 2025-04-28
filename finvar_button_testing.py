@@ -97,7 +97,7 @@ elif st.session_state.page == 'price':
         st.warning("Price data unavailable.")
     st.button("⬅️ Back", on_click=go_app)
 
-elif st.session_state.page == 'Profitability Ratios':
+elif st.session_state.page == 'profitability':
     st.subheader("📘 Profitability Ratios Overview")
     income = ticker.financials
     balance = ticker.balance_sheet
