@@ -380,6 +380,8 @@ elif st.session_state.page=="eps_prediction":
         predicted_eps = model.predict(features)[0]
 
         st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
+
+        st.button("⬅️ Back", on_click=go_app)
     except Exception as e:
         st.error(f"Error in prediction:{e}")
         
