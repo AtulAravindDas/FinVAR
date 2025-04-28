@@ -267,4 +267,36 @@ elif st.session_state.page=="leverage":
     st.info(summary_text)
 
     st.button("⬅️ Back", on_click=go_app)
+    
+elif st.session_state.page=="liquidity":
+    st.subheader("💧 Liquidity and Dividend Overview")
+    ticker=yf.Ticker(st.session_state.ticker)
+    balance = ticker.balance_sheet.T
+    cashflow = ticker.cashflow.T
+    liquidity_df = pd.DataFrame()
+    liquidity_df['Current Ratio'] = balance['Current Assets'] / balance['Current Liabilities']
+    liquidity_df['FCF'] = cashflow['Operating Cash Flow'] - cashflow['Capital Expenditure']
+    liquidity_df.index = liquidity_df.index.year
+    st.dataframe(liquidity_df)
+    st.plotly_chart(px.line(liquidity_df, x=liquidity_df.index, y=['Current Ratio', 'FCF'], markers=True, title="Liquidity & FCF Trends", template="plotly_dark"), use_container_width=True)
+
+    latest_year = liquidity_df.index.max()
+    current_ratio = liquidity_df.loc[latest_year, 'Current Ratio']
+    fcf = liquidity_df.loc[latest_year, 'FCF']
+
+    summary_text = ""
+    if current_ratio >= 1.5:
+        summary_text += f"✅ Strong Current Ratio: {current_ratio:.2f}\n\n"
+    else:
+        summary_text += f"⚠️ Low Current Ratio: {current_ratio:.2f}\n\n"
+
+    if fcf > 0:
+        summary_text += f"✅ Positive Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+    else:
+        summary_text += f"⚠️ Negative Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+
+    st.subheader("🔍 FinVAR Summary: Liquidity & Dividend Overview")
+    st.info(summary_text)
+
+    st.button("⬅️ Back", on_click=go_app)
 
