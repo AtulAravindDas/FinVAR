@@ -186,8 +186,7 @@ elif st.session_state.page == "growth":
         use_container_width=True
     )
 
-    # Calculate Growth Manually
-    latest_years = growth_df.dropna().index.sort_values()[-2:]  # Last 2 available years
+    latest_years = growth_df.dropna().index.sort_values()[-2:]  
 
     if len(latest_years) == 2:
         prev_year = latest_years[0]
@@ -200,7 +199,6 @@ elif st.session_state.page == "growth":
     else:
         revenue_growth = ebitda_growth = net_income_growth = op_cashflow_growth = None
 
-    # Build Summary Text
     summary_text = ""
 
     if revenue_growth is not None:
