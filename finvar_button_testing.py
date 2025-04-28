@@ -62,15 +62,26 @@ elif st.session_state.page == 'app':
             st.success(f"Company: {company_name}")
 
             st.subheader("📂 Select an Analysis Section:")
-            st.button("📝 Show Description", on_click=lambda: set_page('description'))
-            st.button("💰 Current Price", on_click=lambda: set_page('price'))
-            st.button("📘 Profitability Ratios", on_click=lambda: set_page('profitability'))
-            st.button("📈 Growth Overview", on_click=lambda: set_page('growth'))
-            st.button("⚡ Leverage Overview", on_click=lambda: set_page('leverage'))
-            st.button("💧 Liquidity & Dividend Overview", on_click=lambda: set_page('liquidity'))
-            st.button("📉 Stock Price & Volatility", on_click=lambda: set_page('volatility'))
-            st.button("🔮 Predict Next Year EPS", on_click=lambda: set_page('eps_prediction'))
-            st.button("🧹 Fresh Start", on_click=fresh_start)
+
+        if st.button("📝 Show Description"):
+            set_page('description')
+        if st.button("💰 Current Price"):
+            set_page('price')
+        if st.button("📘 Profitability Ratios"):
+            set_page('profitability')
+        if st.button("📈 Growth Overview"):
+            set_page('growth')
+        if st.button("⚡ Leverage Overview"):
+            set_page('leverage')
+        if st.button("💧 Liquidity & Dividend Overview"):
+            set_page('liquidity')
+        if st.button("📉 Stock Price & Volatility"):
+            set_page('volatility')
+        if st.button("🔮 Predict Next Year EPS"):
+            set_page('eps_prediction')
+        if st.button("🧹 Fresh Start"):
+            fresh_start()
+
 
 elif st.session_state.page == 'fresh':
     st.title("🧹 Fresh Start")
