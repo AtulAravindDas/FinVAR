@@ -56,6 +56,7 @@ Your financial assistant referee – reviewing every ticker, flagging every risk
 | File | Description |
 |:---|:---|
 | `finvar_app.py` | Main Streamlit Application |
+| `finvar_button_testing.py` | Tests and error handling for the main Streamlit Application |
 | `final_eps_predictor.pkl` | Trained Machine Learning model (Gradient Boosting) |
 | `final_top_features.json` | Feature set used for EPS prediction |
 | `requirements.txt` | All required Python libraries |
