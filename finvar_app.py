@@ -5,6 +5,7 @@ import numpy as np
 import plotly.express as px
 import joblib
 import sklearn
+import requests
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 model=joblib.load("final_eps_predictor.pkl")
@@ -32,11 +33,16 @@ def load_ticker(ticker_symbol):
 def get_ticker_info(ticker_symbol):
     try:
         ticker = yf.Ticker(ticker_symbol)
-        return ticker.info
-    except yf.YFRateLimitError:
-        return {"error": "rate_limit"}
-    except Exception:
-        return {"error": "unknown"}
+        info = ticker.info
+        if not info or 'longName' not in info:
+            return {"error": "invalid_or_empty"}
+        return info
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 429:
+            return {"error": "rate_limit"}
+        return {"error": f"http_error: {e}"}
+    except Exception as e:
+        return {"error": f"unknown: {e}"}
 
 if st.session_state.page == 'home':
     st.image("FinVAR.png",width=300)
@@ -126,8 +132,8 @@ elif st.session_state.page == 'price':
     if "error" in info:
         st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
         st.stop()
-    price = ticker.info.get('currentPrice', 'N/A')
-    prev_close = ticker.info.get('previousClose', 'N/A')
+    price = info.get('currentPrice', 'N/A')
+    prev_close = info.get('previousClose', 'N/A')
     if price != 'N/A' and prev_close != 'N/A':
         change = price - prev_close
         pct_change = (change / prev_close) * 100
