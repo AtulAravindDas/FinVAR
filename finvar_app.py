@@ -26,8 +26,9 @@ def fresh_start():
     st.session_state.page = 'fresh'
 
 @st.cache_data(ttl=3600)
-def get_info_safe(ticker):
+def get_info_safe(ticker_symbol: str):
     try:
+        ticker = yf.Ticker(ticker_symbol)
         info = ticker.info
         if not info or 'longName' not in info:
             return {"error": "invalid_or_empty"}
@@ -73,8 +74,9 @@ elif st.session_state.page == 'app':
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        ticker = load_ticker(st.session_state.ticker)
-        info = get_info_safe(ticker)
+        ticker_symbol = st.session_state.ticker
+        ticker = load_ticker(ticker_symbol)
+        info = get_info_safe(ticker_symbol)
         if "error" in info:
             error_msg = info["error"]
             if "rate_limit" in error_msg:
@@ -362,12 +364,13 @@ elif st.session_state.page=="volatility":
 
 elif st.session_state.page=="eps_prediction":
     st.subheader("🔮 EPS Prediction for 2025")
-    ticker = load_ticker(st.session_state.ticker)
+    ticker_symbol = st.session_state.ticker
+    ticker = load_ticker(ticker_symbol)
     try:
         income = ticker.financials
         balance = ticker.balance_sheet
         cashflow = ticker.cashflow
-        info = get_info_safe(ticker)
+        info = get_info_safe(ticker_symbol)
         if "error" in info:
             st.error(f"❌ EPS prediction failed: {info['error']}")
             st.button("⬅️ Back", on_click=go_app)
