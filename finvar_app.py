@@ -25,23 +25,22 @@ def fresh_start():
     st.session_state.ticker = ''
     st.session_state.page = 'fresh'
 
-@st.cache_resource
-def load_ticker(ticker_symbol):
-    return yf.Ticker(ticker_symbol)
-
-
 @st.cache_data(ttl=3600)
-def get_ticker_info(ticker_symbol):
+def get_info_safe(ticker):
     try:
-        ticker = yf.Ticker(ticker_symbol)
         info = ticker.info
         if not info or 'longName' not in info:
             return {"error": "invalid_or_empty"}
         return info
     except Exception as e:
-        if "429" in str(e):  # Rate limited
+        if "429" in str(e):
             return {"error": "rate_limit"}
         return {"error": str(e)}
+
+@st.cache_resource
+def load_ticker(ticker_symbol):
+    return yf.Ticker(ticker_symbol)
+
         
 if st.session_state.page == 'home':
     st.image("FinVAR.png",width=300)
@@ -127,19 +126,21 @@ elif st.session_state.page == 'description':
     st.button("⬅️ Back", on_click=go_app)
 
 elif st.session_state.page == 'price':
-    st.subheader("💰 Current Price")
-    info = get_ticker_info(st.session_state.ticker)
-    if "error" in info:
-        st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
-        st.stop()
-    price = info.get('currentPrice', 'N/A')
-    prev_close = info.get('previousClose', 'N/A')
-    if price != 'N/A' and prev_close != 'N/A':
+    st.subheader("💰 Current Price (Fast Info)")
+
+    ticker = load_ticker(st.session_state.ticker)
+    fast_info = ticker.fast_info
+
+    price = fast_info.get('last_price', None)
+    prev_close = fast_info.get('previous_close', None)
+
+    if price is not None and prev_close is not None:
         change = price - prev_close
         pct_change = (change / prev_close) * 100
         st.metric("Current Price (USD)", f"${price:.2f}", f"{pct_change:+.2f}%")
     else:
-        st.warning("Price data unavailable.")
+        st.warning("⚠️ Price data unavailable or rate-limited.")
+
     st.button("⬅️ Back", on_click=go_app)
 
 elif st.session_state.page == 'profitability':
@@ -365,7 +366,11 @@ elif st.session_state.page=="eps_prediction":
         income = ticker.financials
         balance = ticker.balance_sheet
         cashflow = ticker.cashflow
-        info = ticker.info
+        info = get_info_safe(ticker)
+        if "error" in info:
+            st.error(f"❌ EPS prediction failed: {info['error']}")
+            st.button("⬅️ Back", on_click=go_app)
+            st.stop()
 
         income = income.T
         balance = balance.T
