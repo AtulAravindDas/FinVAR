@@ -29,6 +29,7 @@ def fresh_start():
 def load_ticker(ticker_symbol):
     return yf.Ticker(ticker_symbol)
 
+
 @st.cache_data(ttl=3600)
 def get_ticker_info(ticker_symbol):
     try:
@@ -37,13 +38,11 @@ def get_ticker_info(ticker_symbol):
         if not info or 'longName' not in info:
             return {"error": "invalid_or_empty"}
         return info
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 429:
-            return {"error": "rate_limit"}
-        return {"error": f"http_error: {e}"}
     except Exception as e:
-        return {"error": f"unknown: {e}"}
-
+        if "429" in str(e):  # Rate limited
+            return {"error": "rate_limit"}
+        return {"error": str(e)}
+        
 if st.session_state.page == 'home':
     st.image("FinVAR.png",width=300)
     st.title("📊 FinVAR – Financial Assistant Referee")
