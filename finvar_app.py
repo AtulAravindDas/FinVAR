@@ -25,13 +25,20 @@ def fresh_start():
     st.session_state.ticker = ''
     st.session_state.page = 'fresh'
 
+import time
+import random
+
 @st.cache_data(ttl=3600)
 def get_info_safe(ticker_symbol: str):
     try:
         ticker = yf.Ticker(ticker_symbol)
         info = ticker.info
         if not info or 'longName' not in info:
-            return {"error": "invalid_or_empty"}
+            time.sleep(random.uniform(2, 4))
+            ticker = yf.Ticker(ticker_symbol)
+            info = ticker.info
+            if not info or 'longName' not in info:
+                return {"error": "invalid_or_empty"}
         return info
     except Exception as e:
         if "429" in str(e):
@@ -120,7 +127,7 @@ elif st.session_state.page == 'fresh':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    info = get_ticker_info(st.session_state.ticker)
+    info = get_info_safe(st.session_state.ticker)
     if "error" in info:
         st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
         st.stop()
