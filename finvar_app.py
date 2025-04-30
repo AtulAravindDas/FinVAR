@@ -28,6 +28,16 @@ def fresh_start():
 def load_ticker(ticker_symbol):
     return yf.Ticker(ticker_symbol)
 
+@st.cache_data(ttl=3600)
+def get_ticker_info(ticker_symbol):
+    try:
+        ticker = yf.Ticker(ticker_symbol)
+        return ticker.info
+    except yf.YFRateLimitError:
+        return {"error": "rate_limit"}
+    except Exception:
+        return {"error": "unknown"}
+
 if st.session_state.page == 'home':
     st.image("FinVAR.png",width=300)
     st.title("📊 FinVAR – Financial Assistant Referee")
@@ -59,8 +69,13 @@ elif st.session_state.page == 'app':
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        ticker = yf.Ticker(st.session_state.ticker)
-        info = ticker.info
+        info = get_ticker_info(st.session_state.ticker)
+        if "error" in info:
+            if info["error"] == "rate_limit":
+                st.error("⚠️ Yahoo Finance rate limit reached. Please wait a few minutes and try again.")
+            else:
+                st.error("⚠️ Unknown error while fetching data.")
+            st.stop()
 
         if not info or 'longName' not in info:
             st.error("❌ Invalid ticker. Please try again.")
@@ -97,14 +112,20 @@ elif st.session_state.page == 'fresh':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    ticker = yf.Ticker(st.session_state.ticker)
-    description = ticker.info.get('longBusinessSummary', 'N/A')
+    info = get_ticker_info(st.session_state.ticker)
+    if "error" in info:
+        st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
+        st.stop()
+    description = info.get('longBusinessSummary', 'N/A')
     st.write(description)
     st.button("⬅️ Back", on_click=go_app)
 
 elif st.session_state.page == 'price':
     st.subheader("💰 Current Price")
-    ticker = yf.Ticker(st.session_state.ticker)
+    info = get_ticker_info(st.session_state.ticker)
+    if "error" in info:
+        st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
+        st.stop()
     price = ticker.info.get('currentPrice', 'N/A')
     prev_close = ticker.info.get('previousClose', 'N/A')
     if price != 'N/A' and prev_close != 'N/A':
@@ -118,7 +139,6 @@ elif st.session_state.page == 'price':
 elif st.session_state.page == 'profitability':
     st.subheader("📘 Profitability Ratios Overview")
     ticker = load_ticker(st.session_state.ticker)
-
     income = ticker.financials
     balance = ticker.balance_sheet
     ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
