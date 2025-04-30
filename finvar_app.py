@@ -77,11 +77,14 @@ elif st.session_state.page == 'app':
     if st.session_state.ticker:
         info = get_ticker_info(st.session_state.ticker)
         if "error" in info:
-            if info["error"] == "rate_limit":
-                st.error("⚠️ Yahoo Finance rate limit reached. Please wait a few minutes and try again.")
-            else:
-                st.error("⚠️ Unknown error while fetching data.")
-            st.stop()
+            error_msg = info["error"]
+        if "rate_limit" in error_msg:
+            st.error("⚠️ Yahoo Finance rate limit reached. Please wait a few minutes and try again.")
+        elif "invalid_or_empty" in error_msg:
+            st.error("❌ Invalid or empty ticker. Please try another.")
+        else:
+            st.error(f"⚠️ Unexpected error: {error_msg}")
+        st.stop()
 
         if not info or 'longName' not in info:
             st.error("❌ Invalid ticker. Please try again.")
