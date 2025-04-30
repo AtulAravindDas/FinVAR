@@ -73,7 +73,8 @@ elif st.session_state.page == 'app':
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        info = get_ticker_info(st.session_state.ticker)
+        ticker = load_ticker(st.session_state.ticker)
+        info = get_info_safe(ticker)
         if "error" in info:
             error_msg = info["error"]
             if "rate_limit" in error_msg:
