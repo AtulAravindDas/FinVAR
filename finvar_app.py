@@ -28,23 +28,6 @@ def fresh_start():
 import time
 import random
 
-@st.cache_data(ttl=3600)
-def get_info_safe(ticker_symbol: str):
-    try:
-        ticker = yf.Ticker(ticker_symbol)
-        info = ticker.info
-        if not info or 'longName' not in info:
-            time.sleep(random.uniform(2, 4))
-            ticker = yf.Ticker(ticker_symbol)
-            info = ticker.info
-            if not info or 'longName' not in info:
-                return {"error": "invalid_or_empty"}
-        return info
-    except Exception as e:
-        if "429" in str(e):
-            return {"error": "rate_limit"}
-        return {"error": str(e)}
-
 @st.cache_resource
 def load_ticker(ticker_symbol):
     return yf.Ticker(ticker_symbol)
@@ -83,7 +66,23 @@ elif st.session_state.page == 'app':
     if st.session_state.ticker:
         ticker_symbol = st.session_state.ticker
         ticker = load_ticker(ticker_symbol)
-        info = get_info_safe(ticker_symbol)
+        if 'info' not in st.session_state or st.session_state.info.get('symbol', '') != ticker_symbol:
+            try:
+                info = ticker.info  # 🔥 One and only API call
+                if not info or 'longName' not in info:
+                    st.session_state.info = {"error": "invalid_or_empty"}
+                else:
+                    st.session_state.info = info
+            except Exception as e:
+                error_text = str(e)
+                if "429" in error_text:
+                    st.session_state.info = {"error": "rate_limit"}
+                else:
+                    st.session_state.info = {"error": error_text}
+
+        info = st.session_state.info
+
+        # Handle errors cleanly
         if "error" in info:
             error_msg = info["error"]
             if "rate_limit" in error_msg:
@@ -93,7 +92,6 @@ elif st.session_state.page == 'app':
             else:
                 st.error(f"⚠️ Unexpected error: {error_msg}")
             st.stop()
-
         
         company_name = info.get('longName', 'N/A')
         st.success(f"Company: {company_name}")
@@ -127,7 +125,7 @@ elif st.session_state.page == 'fresh':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    info = get_info_safe(st.session_state.ticker)
+    info = st.session_state.info
     if "error" in info:
         st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
         st.stop()
@@ -373,11 +371,11 @@ elif st.session_state.page=="eps_prediction":
     st.subheader("🔮 EPS Prediction for 2025")
     ticker_symbol = st.session_state.ticker
     ticker = load_ticker(ticker_symbol)
+    info = st.session_state.info
     try:
         income = ticker.financials
         balance = ticker.balance_sheet
         cashflow = ticker.cashflow
-        info = get_info_safe(ticker_symbol)
         if "error" in info:
             st.error(f"❌ EPS prediction failed: {info['error']}")
             st.button("⬅️ Back", on_click=go_app)
