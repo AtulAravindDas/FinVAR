@@ -216,38 +216,47 @@ elif st.session_state.page == 'profitability':
         summary_text = ""
         if roe_latest > 15:
             summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.
+"
 
 "
         else:
             summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.
+"
 
 "
         if gross_margin_latest > 40:
             summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.
+"
 
 "
         elif gross_margin_latest > 20:
             summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.
+"
 
 "
         else:
             summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.
+"
 
 "
         if net_margin_latest > 10:
             summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.
+"
 
 "
         else:
             summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.
+"
 
 "
         if asset_turnover_latest > 1:
             summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.
+"
 
 "
         else:
             summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.
+"
 
 "
 
