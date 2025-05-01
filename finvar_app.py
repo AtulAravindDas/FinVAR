@@ -544,8 +544,8 @@ elif st.session_state.page == "eps_prediction":
         current_liabilities = balance_df.loc['totalCurrentLiabilities', latest_year] if 'totalCurrentLiabilities' in balance_df.index else 0
 
         # Convert scale if needed
-        eps = eps / 1e6 if eps > 1000 else eps
-        revenue = revenue / 1e6 if revenue > 1e7 else revenue
+        eps = eps / 1e6 if eps is not None and eps > 1000 else (eps if eps is not None else 0)
+        revenue = revenue / 1e6 if revenue is not None and revenue > 1e7 else (revenue if revenue is not None else 0)
         revenue_3yr_avg = revenue  # Placeholder for now
 
         # Ratios
