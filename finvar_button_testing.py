@@ -525,35 +525,32 @@ elif st.session_state.page == "eps_prediction":
         if income_df.empty or balance_df.empty or cashflow_df.empty:
             raise ValueError("Financial data not available for this ticker")
             
-        # Extract latest year data
+        # Get the latest year data
         latest_year = income_df.columns.max()
         prev_year = income_df.columns[-2] if len(income_df.columns) > 1 else None
         
-        # Extract necessary metrics (adapting field names to FMP API structure)
+        # Extract necessary metrics
         pe_exi = info.get('trailingPE', np.nan)
         npm = income_df.loc['netIncome', latest_year] / income_df.loc['revenue', latest_year] if 'netIncome' in income_df.index and 'revenue' in income_df.index else np.nan
         opmad = income_df.loc['operatingIncome', latest_year] / income_df.loc['revenue', latest_year] if 'operatingIncome' in income_df.index and 'revenue' in income_df.index else np.nan
         roa = income_df.loc['netIncome', latest_year] / balance_df.loc['totalAssets', latest_year] if 'netIncome' in income_df.index and 'totalAssets' in balance_df.index else np.nan
         roe = income_df.loc['netIncome', latest_year] / balance_df.loc['totalStockholdersEquity', latest_year] if 'netIncome' in income_df.index and 'totalStockholdersEquity' in balance_df.index else np.nan
         de_ratio = balance_df.loc['totalLiabilities', latest_year] / balance_df.loc['totalStockholdersEquity', latest_year] if 'totalLiabilities' in balance_df.index and 'totalStockholdersEquity' in balance_df.index else np.nan
-        intcov_ratio = income_df.loc['ebit', latest_year] / income_df.loc['interestExpense', latest_year] if 'ebit' in income_df.index and 'interestExpense' in income_df.index else np.nan
+        intcov_ratio = income_df.loc['operatingIncome', latest_year] / income_df.loc['interestExpense', latest_year] if 'operatingIncome' in income_df.index and 'interestExpense' in income_df.index and income_df.loc['interestExpense', latest_year] != 0 else np.nan
         curr_ratio = balance_df.loc['totalCurrentAssets', latest_year] / balance_df.loc['totalCurrentLiabilities', latest_year] if 'totalCurrentAssets' in balance_df.index and 'totalCurrentLiabilities' in balance_df.index else np.nan
         revenue = income_df.loc['revenue', latest_year] if 'revenue' in income_df.index else np.nan
         eps = info.get('epsTrailingTwelveMonths', np.nan)
         
-        # Calculate growth rates if previous year data available
+        # Calculate growth
         previous_revenue = income_df.loc['revenue', prev_year] if prev_year and 'revenue' in income_df.index else np.nan
         revenue_growth = ((revenue - previous_revenue) / previous_revenue) if not np.isnan(previous_revenue) and previous_revenue != 0 else 0
-        eps_growth = 0  # Default if not available
         
         # Calculate derived metrics
         roa_to_revenue = roa / revenue if not np.isnan(roa) and not np.isnan(revenue) and revenue != 0 else 0
-        roe_to_roa = roe / roa if not np.isnan(roe) and not np.isnan(roa) and roa != 0 else 0
-        debt_to_income = de_ratio / revenue if not np.isnan(de_ratio) and not np.isnan(revenue) and revenue != 0 else 0
-        intcov_per_curr = intcov_ratio / curr_ratio if not np.isnan(intcov_ratio) and not np.isnan(curr_ratio) and curr_ratio != 0 else 0
         opmad_to_npm = opmad / npm if not np.isnan(opmad) and not np.isnan(npm) and npm != 0 else 0
+        intcov_per_curr = intcov_ratio / curr_ratio if not np.isnan(intcov_ratio) and not np.isnan(curr_ratio) and curr_ratio != 0 else 0
         
-        # Use simple averages for now
+        # Use simple averages
         eps_3yr_avg = eps
         revenue_3yr_avg = revenue
         
@@ -570,10 +567,10 @@ elif st.session_state.page == "eps_prediction":
         # Make prediction
         predicted_eps = model.predict(features)[0]
         
-        # Display prediction with visualization
+        # Display prediction
         st.success(f"🧠 Predicted EPS for 2025: **${predicted_eps:.2f}**")
         
-        # Compare with current EPS
+        # Show comparison if current EPS is available
         if not np.isnan(eps):
             eps_growth_pct = ((predicted_eps - eps) / eps) * 100 if eps != 0 else np.nan
             if not np.isnan(eps_growth_pct):
@@ -583,7 +580,7 @@ elif st.session_state.page == "eps_prediction":
                 with col2:
                     st.metric("Projected Growth", f"{eps_growth_pct:+.2f}%")
                 
-                # Add visualization
+                # Simple bar chart
                 eps_data = pd.DataFrame({
                     'Year': ['Current', '2025 (Predicted)'],
                     'EPS': [eps, predicted_eps]
@@ -598,33 +595,6 @@ elif st.session_state.page == "eps_prediction":
                     color='Year'
                 )
                 st.plotly_chart(fig, use_container_width=True)
-                
-                # Add summary text
-                summary_text = ""
-                if eps_growth_pct > 15:
-                    summary_text += f"✅ Strong projected EPS growth ({eps_growth_pct:.2f}%)\n\n"
-                elif eps_growth_pct > 0:
-                    summary_text += f"✅ Positive projected EPS growth ({eps_growth_pct:.2f}%)\n\n"
-                else:
-                    summary_text += f"⚠️ Negative projected EPS growth ({eps_growth_pct:.2f}%)\n\n"
-                
-                # Add PE ratio estimates if available
-                if not np.isnan(pe_exi) and pe_exi > 0:
-                    projected_price = predicted_eps * pe_exi
-                    current_price = info.get('currentPrice', np.nan)
-                    
-                    if not np.isnan(current_price) and current_price > 0:
-                        price_growth = ((projected_price - current_price) / current_price) * 100
-                        
-                        if price_growth > 15:
-                            summary_text += f"✅ Based on current P/E ratio ({pe_exi:.2f}), the projected stock price could be ${projected_price:.2f}, suggesting significant growth potential ({price_growth:.2f}%)"
-                        elif price_growth > 0:
-                            summary_text += f"✅ Based on current P/E ratio ({pe_exi:.2f}), the projected stock price could be ${projected_price:.2f}, suggesting modest growth potential ({price_growth:.2f}%)"
-                        else:
-                            summary_text += f"⚠️ Based on current P/E ratio ({pe_exi:.2f}), the projected stock price could be ${projected_price:.2f}, suggesting potential downside ({price_growth:.2f}%)"
-                
-                st.subheader("🔍 FinVAR Summary: EPS Prediction")
-                st.info(summary_text)
         
     except Exception as e:
         st.error(f"Error in prediction: {e}")
