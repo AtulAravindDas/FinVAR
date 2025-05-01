@@ -7,3 +7,4 @@ matplotlib
 plotly
 joblib
 finnhub-python
+yfinance
