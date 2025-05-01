@@ -121,12 +121,16 @@ elif st.session_state.page == 'app':
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        info = get_ticker_info(st.session_state.ticker)
+        if 'info' not in st.session_state.ticker_data_cache.get(st.session_state.ticker, {}):
+            st.session_state.ticker_data_cache.setdefault(st.session_state.ticker, {})['info'] = get_ticker_info(st.session_state.ticker)
+        info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
 
         if 'error' in info:
             st.error(f"Error fetching data: {info['error']}")
         else:
             st.success(f"Company: {info['longName']}")
+            st.write("Sector:", info.get("industry", "N/A"))
+            st.write("📘 Description:", info.get("description", "N/A"))
 
             if info['currentPrice'] is not None and info['previousClose'] is not None:
                 change = info['currentPrice'] - info['previousClose']
@@ -152,6 +156,45 @@ elif st.session_state.page == 'description':
     else:
         st.markdown(f"**{info['description']}**")
     st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'profitability':
+    st.title("📘 Profitability Ratios Overview")
+    if 'financials' not in st.session_state.ticker_data_cache.get(st.session_state.ticker, {}):
+        st.session_state.ticker_data_cache.setdefault(st.session_state.ticker, {})['financials'] = get_financials_with_fallback(st.session_state.ticker)
+    income_df, balance_df, _, _ = st.session_state.ticker_data_cache[st.session_state.ticker]['financials']
+
+    if income_df.empty or balance_df.empty:
+        st.warning("⚠️ Financial data not available for this ticker.")
+        st.button("⬅️ Back", on_click=go_app)
+    else:
+        df = pd.DataFrame()
+        df['Net Income'] = income_df.loc['netIncome']
+        df['Gross Profit'] = income_df.loc['grossProfit']
+        df['Revenue'] = income_df.loc['revenue']
+        df['EBITDA'] = income_df.loc['ebitda']
+        df['EBIT'] = income_df.loc['operatingIncome']
+        df['Equity'] = balance_df.loc['totalStockholdersEquity']
+        df['Assets'] = balance_df.loc['totalAssets']
+        df['Liabilities'] = balance_df.loc['totalLiabilities']
+
+        df = df.dropna().T
+        df.columns = df.columns.year
+        df = df.T
+        df = df.apply(pd.to_numeric, errors='coerce')
+
+        df['ROE (%)'] = (df['Net Income'] / df['Equity']) * 100
+        df['Gross Margin (%)'] = (df['Gross Profit'] / df['Revenue']) * 100
+        df['Net Margin (%)'] = (df['Net Income'] / df['Revenue']) * 100
+        df['Asset Turnover'] = df['Revenue'] / df['Assets']
+        df['Financial Leverage'] = df['Assets'] / df['Equity']
+
+        st.plotly_chart(px.line(df, x=df.index, y='ROE (%)', title='Return on Equity (%)', markers=True, template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.bar(df, x=df.index, y='Gross Margin (%)', title='Gross Profit Margin (%)', template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.line(df, x=df.index, y='Net Margin (%)', title='Net Profit Margin (%)', markers=True, template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.area(df, x=df.index, y='Asset Turnover', title='Asset Turnover', template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.scatter(df, x=df.index, y='Financial Leverage', title='Financial Leverage', size='Financial Leverage', template='plotly_dark'), use_container_width=True)
+
+        st.button("⬅️ Back", on_click=go_app)
 
 elif st.session_state.page == 'price':
     st.title("💰 Current Stock Price")
