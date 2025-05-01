@@ -202,9 +202,11 @@ elif st.session_state.page == 'profitability':
     st.subheader("📘 Profitability Ratios Overview")
 
     income, balance, _, _ = get_financials_with_fallback(st.session_state.ticker)
+    income = income.rename(index=lambda x: x.lower())
+    balance = balance.rename(index=lambda x: x.lower())
 
-    required_income = ["Revenue", "GrossProfit", "EBITDA", "EBIT", "NetIncome"]
-    required_balance = ["TotalAssets", "TotalEquity", "TotalLiabilities"]
+    required_income = ["revenue", "grossprofit", "ebitda", "ebit", "netincome"]
+    required_balance = ["totalassets", "totalequity", "totalliabilities"]
 
     # Filter and align
     income = income.loc[[col for col in income.index if col in required_income]]
@@ -214,14 +216,14 @@ elif st.session_state.page == 'profitability':
     balance = balance.T
 
     df = pd.DataFrame()
-    df['Net Income'] = income['NetIncome']
-    df['Gross Profit'] = income['GrossProfit']
-    df['Total Revenue'] = income['Revenue']
-    df['EBITDA'] = income['EBITDA']
-    df['EBIT'] = income['EBIT']
-    df['Shareholders Equity'] = balance['TotalEquity']
-    df['Total Assets'] = balance['TotalAssets']
-    df['Total Liabilities'] = balance['TotalLiabilities']
+    df['Net Income'] = income.loc['netincome']
+    df['Gross Profit'] = income.loc['grossprofit']
+    df['Total Revenue'] = income.loc['revenue']
+    df['EBITDA'] = income.loc['ebitda']
+    df['EBIT'] = income.loc['ebit']
+    df['Shareholders Equity'] = balance.loc['totalequity']
+    df['Total Assets'] = balance.loc['totalassets']
+    df['Total Liabilities'] = balance.loc['totalliabilities']
 
     df = df.dropna().apply(pd.to_numeric, errors='coerce').dropna()
     df.index = df.index.year
@@ -233,7 +235,7 @@ elif st.session_state.page == 'profitability':
     df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
     df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
 
-    st.subheader("📈 Profitability Ratios")
+    st.subheader("📈 Interactive Financial Visuals")
     st.plotly_chart(px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark"), use_container_width=True)
     st.plotly_chart(px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark"), use_container_width=True)
     st.plotly_chart(px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark"), use_container_width=True)
