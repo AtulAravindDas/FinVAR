@@ -176,6 +176,7 @@ elif st.session_state.page == 'fresh':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
+    info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
     
     if "error" in info:
         st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
