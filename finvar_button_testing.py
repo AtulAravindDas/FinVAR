@@ -59,8 +59,8 @@ def get_financials_with_fallback(ticker_symbol):
         def convert_to_df(data):
             df = pd.DataFrame(data.get("financials", []))
             if not df.empty:
-                df = df.set_index("year").T
-                df.columns = pd.to_datetime(df.columns, format='%Y')
+                df = df.set_index("date").T
+                df.columns = pd.to_datetime(df.columns)
                 df = df.apply(pd.to_numeric, errors='coerce')
             return df
 
@@ -217,9 +217,9 @@ elif st.session_state.page == 'profitability':
     balance = balance.T
     st.write("Available income statement rows:", income.index.tolist())
 
-    '''df = pd.DataFrame()
-    df['Net Income'] = income.loc['netIncome']
-    df['Gross Profit'] = income.loc['grossProfit']
+    df = pd.DataFrame()
+    df['Net Income'] = income.loc['netincome']
+    df['Gross Profit'] = income.loc['grossprofit']
     df['Total Revenue'] = income.loc['revenue']
     df['EBITDA'] = income.loc['ebitda']
     df['EBIT'] = income.loc['ebit']
@@ -272,6 +272,6 @@ elif st.session_state.page == 'profitability':
         summary_text += f"⚠️ Low Asset Turnover ({df.loc[latest_year, 'Asset Turnover']:.2f}).\n\n"
 
     st.subheader("🔍 FinVAR Summary: Profitability Overview")
-    st.info(summary_text)'''
+    st.info(summary_text)
     st.button("⬅️ Back", on_click=go_app)
 
