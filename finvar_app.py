@@ -277,7 +277,9 @@ elif st.session_state.page == 'profitability':
             summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n\n"
 
         st.subheader("🔍 FinVAR Summary: Profitability Overview")
-        st.info(summary_text)
+        for line in summary_text.strip().split("\n"):
+            if line.strip():  # ignore empty lines
+                st.info(line.strip())
 
         st.write("")
         st.write("")
