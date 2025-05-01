@@ -26,7 +26,8 @@ def get_ticker_info(ticker_symbol):
 
         info = {
             "longName": profile.get("name", "N/A"),
-            "longBusinessSummary": profile.get("finnhubIndustry", "N/A"),
+            "industry": profile.get("finnhubIndustry", "N/A"),
+            "description": f"{profile.get('name', 'This company')} is a company in the {profile.get('finnhubIndustry', 'N/A')} sector, headquartered in {profile.get('country', 'an unknown location')}.",
             "currentPrice": quote.get("c", None),
             "previousClose": quote.get("pc", None),
             "trailingPE": None,
@@ -129,13 +130,17 @@ elif st.session_state.page == 'app':
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        info = get_ticker_info(st.session_state.ticker)
+        if 'info' not in st.session_state.ticker_data_cache.get(st.session_state.ticker, {}):
+            st.session_state.ticker_data_cache[st.session_state.ticker] = st.session_state.ticker_data_cache.get(st.session_state.ticker, {})
+            st.session_state.ticker_data_cache[st.session_state.ticker]['info'] = get_ticker_info(st.session_state.ticker)
+        info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
         if "error" in info:
             st.error(f"Error: {info['error']}")
             st.stop()
 
         st.success(f"Company: {info['longName']}")
-        st.write("Sector/Industry:", info["longBusinessSummary"])
+        st.write("Sector:", info["industry"])
+        st.write("📘 Description:", info["description"])
 
         if info['currentPrice'] is not None and info['previousClose'] is not None:
             change = info['currentPrice'] - info['previousClose']
@@ -171,10 +176,10 @@ elif st.session_state.page == 'fresh':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    info = get_ticker_info(st.session_state.ticker)
+    
     if "error" in info:
         st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
         st.stop()
-    description = info.get('longBusinessSummary', 'N/A')
+    description = info.get('description', 'N/A')
     st.write(description)
     st.button("⬅️ Back", on_click=go_app)
