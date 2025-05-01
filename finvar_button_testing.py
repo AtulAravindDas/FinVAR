@@ -129,8 +129,7 @@ elif st.session_state.page == 'app':
             st.error(f"Error fetching data: {info['error']}")
         else:
             st.success(f"Company: {info['longName']}")
-            st.write("Sector:", info.get("industry", "N/A"))
-            st.write("📘 Description:", info.get("description", "N/A"))
+            
 
             if info['currentPrice'] is not None and info['previousClose'] is not None:
                 change = info['currentPrice'] - info['previousClose']
