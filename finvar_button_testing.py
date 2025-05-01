@@ -210,7 +210,7 @@ elif st.session_state.page == 'profitability':
 
         latest_year = df.index.max()
         roe_latest = df.loc[latest_year, 'ROE (%)']
-        gross_margin_latest = df.loc[latest_year, 'Gross Profit Margin (%)']
+        gross_margin_latest = df.loc[latest_year, 'Gross Margin (%)']
         net_margin_latest = df.loc[latest_year, 'Net Margin (%)']
         asset_turnover_latest = df.loc[latest_year, 'Asset Turnover']
         summary_text = ""
