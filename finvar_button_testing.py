@@ -27,6 +27,8 @@ def get_all_ticker_data(ticker_symbol):
             income_url = f"{BASE_URL}/income-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
             balance_url = f"{BASE_URL}/balance-sheet-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
             cashflow_url = f"{BASE_URL}/cash-flow-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
+            # Add historical price data endpoint
+            historical_url = f"{BASE_URL}/historical-price-full/{ticker_symbol}?apikey={API_KEY}"
             
             # Execute all requests
             profile_data = session.get(profile_url).json()
@@ -34,6 +36,7 @@ def get_all_ticker_data(ticker_symbol):
             income_data = session.get(income_url).json()
             balance_data = session.get(balance_url).json()
             cashflow_data = session.get(cashflow_url).json()
+            historical_data = session.get(historical_url).json()
 
         if not profile_data or not quote_data:
             raise ValueError("Invalid data returned from FMP API.")
@@ -56,7 +59,13 @@ def get_all_ticker_data(ticker_symbol):
         income_df = pd.DataFrame(income_data).set_index("date").T if income_data else pd.DataFrame()
         balance_df = pd.DataFrame(balance_data).set_index("date").T if balance_data else pd.DataFrame()
         cashflow_df = pd.DataFrame(cashflow_data).set_index("date").T if cashflow_data else pd.DataFrame()
-        history_df = pd.DataFrame()
+        
+        # Historical price data
+        history_df = pd.DataFrame(historical_data.get('historical', [])) if 'historical' in historical_data else pd.DataFrame()
+        if not history_df.empty:
+            history_df['date'] = pd.to_datetime(history_df['date'])
+            history_df.set_index('date', inplace=True)
+            history_df = history_df.sort_index()
         
         # Process dataframes
         for df in [income_df, balance_df, cashflow_df]:
@@ -95,6 +104,8 @@ def go_app():
 
 def set_page(name):
     st.session_state.page = name
+    # Force rerun to update the UI immediately
+    st.experimental_rerun()
 
 def fresh_start():
     st.session_state.ticker = ''
@@ -123,7 +134,8 @@ if st.session_state.page == 'home':
     - **EPS Prediction Engine:** Trained ML model forecasts future EPS based on real-time financials.
     ---
     Click the button below to start!""")
-    st.button("🚀 Enter FinVAR App", on_click=go_app)
+    if st.button("🚀 Enter FinVAR App", key="enter_app"):
+        go_app()
 
 elif st.session_state.page == 'app':
     st.title("🔍 FinVAR – Start Analysis")
@@ -147,23 +159,27 @@ elif st.session_state.page == 'app':
                 st.warning("Price data unavailable.")
 
             st.subheader("📂 Select an Analysis Section:")
-            if st.button("📝 Show Description"):
-                set_page('description')
-            if st.button("💰 Current Price"):
-                set_page('price')
-            if st.button("📘 Profitability Ratios"):
-                set_page('profitability')
-            if st.button("📈 Growth Overview"):
-                set_page('growth')
-            if st.button("⚡ Leverage Overview"):
-                set_page('leverage')
-            if st.button("💧 Liquidity & Dividend Overview"):
-                set_page('liquidity')
-            if st.button("📉 Stock Price & Volatility"):
-                set_page('volatility')
-            if st.button("🔮 Predict Next Year EPS"):
-                set_page('eps_prediction')
-            if st.button("🧹 Fresh Start"):
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📝 Show Description", key="btn_description", use_container_width=True):
+                    set_page('description')
+                if st.button("📘 Profitability Ratios", key="btn_profit", use_container_width=True):
+                    set_page('profitability')
+                if st.button("⚡ Leverage Overview", key="btn_leverage", use_container_width=True):
+                    set_page('leverage')
+                if st.button("📉 Stock Price & Volatility", key="btn_volatility", use_container_width=True):
+                    set_page('volatility')
+            with col2:
+                if st.button("💰 Current Price", key="btn_price", use_container_width=True):
+                    set_page('price')
+                if st.button("📈 Growth Overview", key="btn_growth", use_container_width=True):
+                    set_page('growth')
+                if st.button("💧 Liquidity & Dividend", key="btn_liquidity", use_container_width=True):
+                    set_page('liquidity')
+                if st.button("🔮 Predict Next Year EPS", key="btn_eps", use_container_width=True):
+                    set_page('eps_prediction')
+            
+            if st.button("🧹 Fresh Start", key="btn_fresh", use_container_width=True):
                 fresh_start()
 
 elif st.session_state.page == 'description':
@@ -174,7 +190,10 @@ elif st.session_state.page == 'description':
         st.error("⚠️ Unable to fetch company description. API issue.")
     else:
         st.markdown(f"**{info['description']}**")
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="desc_back", use_container_width=True):
+        go_app()
   
 elif st.session_state.page == 'price':
     st.title("💰 Current Stock Price")
@@ -188,7 +207,10 @@ elif st.session_state.page == 'price':
         st.metric("Current Price (USD)", f"${info['currentPrice']:.2f}", f"{pct_change:+.2f}%")
     else:
         st.warning("Price data not available.")
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="price_back", use_container_width=True):
+        go_app()
 
 elif st.session_state.page == 'profitability':
     st.title("📘 Profitability Ratios Overview")
@@ -197,7 +219,8 @@ elif st.session_state.page == 'profitability':
 
     if income_df.empty or balance_df.empty:
         st.warning("⚠️ Financial data not available for this ticker.")
-        st.button("⬅️ Back", on_click=go_app)
+        if st.button("⬅️ Back to Main Menu", key="profit_back_empty", use_container_width=True):
+            go_app()
     else:
         df = pd.DataFrame()
         df['Net Income'] = income_df.loc['netIncome']
@@ -257,7 +280,11 @@ elif st.session_state.page == 'profitability':
         st.subheader("🔍 FinVAR Summary: Profitability Overview")
         st.info(summary_text)
 
-        st.button("⬅️ Back", on_click=go_app)
+        st.write("")
+        st.write("")
+        if st.button("⬅️ Back to Main Menu", key="profit_back", use_container_width=True):
+            go_app()
+            
 elif st.session_state.page == "growth":
     st.subheader("📈 Expanded Growth Overview")
     all_data = get_all_ticker_data(st.session_state.ticker)
@@ -332,7 +359,10 @@ elif st.session_state.page == "growth":
     st.subheader("🔍 FinVAR Summary: Growth Overview")
     st.info(summary_text)
 
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="growth_back", use_container_width=True):
+        go_app()
 
 elif st.session_state.page == "leverage":
     st.subheader("⚡ Leverage Ratios Overview")
@@ -366,7 +396,10 @@ elif st.session_state.page == "leverage":
     else:
         st.warning("⚠️ Leverage data not available for this ticker.")
 
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="leverage_back", use_container_width=True):
+        go_app()
 
 elif st.session_state.page == "liquidity":
     st.subheader("💧 Liquidity and Dividend Overview")
@@ -401,21 +434,86 @@ elif st.session_state.page == "liquidity":
     else:
         st.warning("⚠️ Liquidity data not available for this ticker.")
 
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="liquidity_back", use_container_width=True):
+        go_app()
 
 elif st.session_state.page == "volatility":
     st.subheader("📈 Stock Price & Volatility Overview")
     all_data = get_all_ticker_data(st.session_state.ticker)
+    history_df = all_data['financials'][3]
     
-    # For historical data, we would need to add an API call to get this data
-    # Since we want to keep API calls minimal, we would need to include this in our initial data fetch
-    # For now, show a message that this requires additional API calls
-    st.warning("Stock price history data requires additional API calls. To maintain API rate limits, this feature has been disabled.")
-    
-    # Placeholder for future implementation that would use the unified API approach
-    st.info("You can modify the get_all_ticker_data() function to include historical prices in the same API call if needed.")
-    
-    st.button("⬅️ Back", on_click=go_app)
+    if history_df.empty:
+        st.warning("⚠️ Historical price data not available for this ticker.")
+    else:
+        # Calculate daily returns
+        history_df['Daily Return'] = history_df['close'].pct_change()
+        
+        # Calculate annualized volatility (252 trading days per year)
+        volatility = history_df['Daily Return'].std() * np.sqrt(252)
+        
+        # Display stock price chart
+        st.subheader("Price History")
+        fig = px.line(
+            history_df, 
+            y='close',
+            title=f"{st.session_state.ticker} Price History",
+            template="plotly_dark"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Display volatility metrics
+        st.subheader(f"Annualized Volatility: {volatility:.2%}")
+        
+        # Show additional metrics in columns
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            recent_close = history_df['close'].iloc[-1]
+            st.metric("Latest Close", f"${recent_close:.2f}")
+        with col2:
+            year_high = history_df['high'].max()
+            st.metric("52-Week High", f"${year_high:.2f}")
+        with col3:
+            year_low = history_df['low'].min()
+            st.metric("52-Week Low", f"${year_low:.2f}")
+            
+        # Add daily returns histogram
+        st.subheader("Daily Returns Distribution")
+        fig_hist = px.histogram(
+            history_df, 
+            x='Daily Return',
+            nbins=50,
+            title="Distribution of Daily Returns",
+            template="plotly_dark"
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+        
+        # Summary text
+        summary_text = ""
+        if volatility > 0.4:
+            summary_text += f"⚠️ High volatility ({volatility:.2%}): This stock shows significant price swings, indicating higher risk.\n\n"
+        elif volatility > 0.2:
+            summary_text += f"⚠️ Moderate volatility ({volatility:.2%}): This stock shows average market volatility.\n\n"
+        else:
+            summary_text += f"✅ Low volatility ({volatility:.2%}): This stock shows relatively stable price action.\n\n"
+            
+        # Add price trend information
+        returns_30d = (history_df['close'].iloc[-1] / history_df['close'].iloc[-min(30, len(history_df))]) - 1
+        if returns_30d > 0.05:
+            summary_text += f"✅ Strong recent uptrend: {returns_30d:.2%} over the last month.\n\n"
+        elif returns_30d < -0.05:
+            summary_text += f"⚠️ Significant recent downtrend: {returns_30d:.2%} over the last month.\n\n"
+        else:
+            summary_text += f"⚠️ Sideways price action: {returns_30d:.2%} over the last month.\n\n"
+        
+        st.subheader("🔍 FinVAR Summary: Volatility Analysis")
+        st.info(summary_text)
+
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="volatility_back", use_container_width=True):
+        go_app()
 
 elif st.session_state.page == "eps_prediction":
     st.subheader("🔮 EPS Prediction for 2025")
@@ -473,9 +571,66 @@ elif st.session_state.page == "eps_prediction":
         # Make prediction
         predicted_eps = model.predict(features)[0]
         
-        st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
+        # Display prediction with visualization
+        st.success(f"🧠 Predicted EPS for 2025: **${predicted_eps:.2f}**")
+        
+        # Compare with current EPS
+        if not np.isnan(eps):
+            eps_growth_pct = ((predicted_eps - eps) / eps) * 100 if eps != 0 else np.nan
+            if not np.isnan(eps_growth_pct):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Current EPS", f"${eps:.2f}")
+                with col2:
+                    st.metric("Projected Growth", f"{eps_growth_pct:+.2f}%")
+                
+                # Add visualization
+                eps_data = pd.DataFrame({
+                    'Year': ['Current', '2025 (Predicted)'],
+                    'EPS': [eps, predicted_eps]
+                })
+                
+                fig = px.bar(
+                    eps_data, 
+                    x='Year', 
+                    y='EPS', 
+                    title="EPS Comparison",
+                    template="plotly_dark",
+                    color='Year'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Add summary text
+                summary_text = ""
+                if eps_growth_pct > 15:
+                    summary_text += f"✅ Strong projected EPS growth ({eps_growth_pct:.2f}%)\n\n"
+                elif eps_growth_pct > 0:
+                    summary_text += f"✅ Positive projected EPS growth ({eps_growth_pct:.2f}%)\n\n"
+                else:
+                    summary_text += f"⚠️ Negative projected EPS growth ({eps_growth_pct:.2f}%)\n\n"
+                
+                # Add PE ratio estimates if available
+                if not np.isnan(pe_exi) and pe_exi > 0:
+                    projected_price = predicted_eps * pe_exi
+                    current_price = info.get('currentPrice', np.nan)
+                    
+                    if not np.isnan(current_price) and current_price > 0:
+                        price_growth = ((projected_price - current_price) / current_price) * 100
+                        
+                        if price_growth > 15:
+                            summary_text += f"✅ Based on current P/E ratio ({pe_exi:.2f}), the projected stock price could be ${projected_price:.2f}, suggesting significant growth potential ({price_growth:.2f}%)"
+                        elif price_growth > 0:
+                            summary_text += f"✅ Based on current P/E ratio ({pe_exi:.2f}), the projected stock price could be ${projected_price:.2f}, suggesting modest growth potential ({price_growth:.2f}%)"
+                        else:
+                            summary_text += f"⚠️ Based on current P/E ratio ({pe_exi:.2f}), the projected stock price could be ${projected_price:.2f}, suggesting potential downside ({price_growth:.2f}%)"
+                
+                st.subheader("🔍 FinVAR Summary: EPS Prediction")
+                st.info(summary_text)
         
     except Exception as e:
         st.error(f"Error in prediction: {e}")
     
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="eps_back", use_container_width=True):
+        go_app()
