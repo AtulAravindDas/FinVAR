@@ -52,6 +52,7 @@ def get_financials_with_fallback(ticker_symbol):
     try:
         # Annual financials
         inc_stmt = finnhub_client.financials(symbol=ticker_symbol, statement='ic', freq='annual')
+        st.write("Raw inc_stmt for AAPL:", inc_stmt)
         bal_stmt = finnhub_client.financials(symbol=ticker_symbol, statement='bs', freq='annual')
         cf_stmt = finnhub_client.financials(symbol=ticker_symbol, statement='cf', freq='annual')
 
