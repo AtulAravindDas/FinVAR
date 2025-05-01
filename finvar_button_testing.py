@@ -527,21 +527,21 @@ elif st.session_state.page == "eps_prediction":
         latest_year = income_df.columns.max()
         prev_year = income_df.columns[-2] if len(income_df.columns) > 1 else None
 
-        # Extract raw values
+        # Extract raw values using .loc[row, col]
         eps = info.get('epsTrailingTwelveMonths', 0)
-        revenue = income_df.loc['revenue'].get(latest_year, 0)
-        previous_revenue = income_df.loc['revenue'].get(prev_year, 0) if prev_year else 0
+        revenue = income_df.loc['revenue', latest_year] if 'revenue' in income_df.index else 0
+        previous_revenue = income_df.loc['revenue', prev_year] if prev_year and 'revenue' in income_df.index else 0
         revenue_growth = ((revenue - previous_revenue) / previous_revenue) if previous_revenue else 0
 
-        net_income = income_df.loc['netIncome'].get(latest_year, 0)
-        operating_income = income_df.loc['operatingIncome'].get(latest_year, 0)
-        interest_expense = income_df.loc.get('interestExpense', pd.Series()).get(latest_year, 0)
+        net_income = income_df.loc['netIncome', latest_year] if 'netIncome' in income_df.index else 0
+        operating_income = income_df.loc['operatingIncome', latest_year] if 'operatingIncome' in income_df.index else 0
+        interest_expense = income_df.loc['interestExpense', latest_year] if 'interestExpense' in income_df.index else 0
 
-        total_assets = balance_df.loc['totalAssets'].get(latest_year, 0)
-        total_equity = balance_df.loc['totalStockholdersEquity'].get(latest_year, 0)
-        total_liabilities = balance_df.loc['totalLiabilities'].get(latest_year, 0)
-        current_assets = balance_df.loc['totalCurrentAssets'].get(latest_year, 0)
-        current_liabilities = balance_df.loc['totalCurrentLiabilities'].get(latest_year, 0)
+        total_assets = balance_df.loc['totalAssets', latest_year] if 'totalAssets' in balance_df.index else 0
+        total_equity = balance_df.loc['totalStockholdersEquity', latest_year] if 'totalStockholdersEquity' in balance_df.index else 0
+        total_liabilities = balance_df.loc['totalLiabilities', latest_year] if 'totalLiabilities' in balance_df.index else 0
+        current_assets = balance_df.loc['totalCurrentAssets', latest_year] if 'totalCurrentAssets' in balance_df.index else 0
+        current_liabilities = balance_df.loc['totalCurrentLiabilities', latest_year] if 'totalCurrentLiabilities' in balance_df.index else 0
 
         # Convert scale if needed
         eps = eps / 1e6 if eps > 1000 else eps
