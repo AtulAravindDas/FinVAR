@@ -197,7 +197,7 @@ elif st.session_state.page == 'profitability':
         df = df.apply(pd.to_numeric, errors='coerce')
 
         df['ROE (%)'] = (df['Net Income'] / df['Equity']) * 100
-        df['Gross Profit Margin (%)'] = (df['Gross Profit'] / df['Revenue']) * 100
+        df['Gross Margin (%)'] = (df['Gross Profit'] / df['Revenue']) * 100
         df['Net Margin (%)'] = (df['Net Income'] / df['Revenue']) * 100
         df['Asset Turnover'] = df['Revenue'] / df['Assets']
         df['Financial Leverage'] = df['Assets'] / df['Equity']
