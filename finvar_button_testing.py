@@ -153,7 +153,16 @@ elif st.session_state.page == 'app':
                 set_page('price')
             if st.button("📘 Profitability Ratios"):
                 set_page('profitability')
-            # More buttons can be added here as new sections are implemented
+            if st.button("📈 Growth Overview"):
+                set_page('growth')
+            if st.button("⚡ Leverage Overview"):
+                set_page('leverage')
+            if st.button("💧 Liquidity & Dividend Overview"):
+                set_page('liquidity')
+            if st.button("📉 Stock Price & Volatility"):
+                set_page('volatility')
+            if st.button("🔮 Predict Next Year EPS"):
+                set_page('eps_prediction')
             if st.button("🧹 Fresh Start"):
                 fresh_start()
 
@@ -249,3 +258,224 @@ elif st.session_state.page == 'profitability':
         st.info(summary_text)
 
         st.button("⬅️ Back", on_click=go_app)
+elif st.session_state.page == "growth":
+    st.subheader("📈 Expanded Growth Overview")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    income_df, _, cashflow_df, _ = all_data['financials']
+    
+    # Create Growth DataFrame
+    growth_df = pd.DataFrame()
+    growth_df['Total Revenue'] = income_df.loc['revenue'] if 'revenue' in income_df.index else None
+    growth_df['EBITDA'] = income_df.loc['ebitda'] if 'ebitda' in income_df.index else None
+    growth_df['Net Income'] = income_df.loc['netIncome'] if 'netIncome' in income_df.index else None
+    growth_df['Operating Cash Flow'] = cashflow_df.loc['operatingCashFlow'] if 'operatingCashFlow' in cashflow_df.index else None
+
+    st.plotly_chart(
+        px.line(
+            growth_df,
+            x=growth_df.index,
+            y=growth_df.columns,
+            markers=True,
+            title="Raw Financial Metrics Over Time",
+            template="plotly_dark"
+        ),
+        use_container_width=True
+    )
+
+    latest_years = growth_df.dropna().index.sort_values()[-2:]
+
+    if len(latest_years) == 2:
+        prev_year = latest_years[0]
+        latest_year = latest_years[1]
+
+        revenue_growth = ((growth_df.loc[latest_year, 'Total Revenue'] - growth_df.loc[prev_year, 'Total Revenue']) / growth_df.loc[prev_year, 'Total Revenue']) * 100 if 'Total Revenue' in growth_df.columns else None
+        ebitda_growth = ((growth_df.loc[latest_year, 'EBITDA'] - growth_df.loc[prev_year, 'EBITDA']) / growth_df.loc[prev_year, 'EBITDA']) * 100 if 'EBITDA' in growth_df.columns else None
+        net_income_growth = ((growth_df.loc[latest_year, 'Net Income'] - growth_df.loc[prev_year, 'Net Income']) / growth_df.loc[prev_year, 'Net Income']) * 100 if 'Net Income' in growth_df.columns else None
+        op_cashflow_growth = ((growth_df.loc[latest_year, 'Operating Cash Flow'] - growth_df.loc[prev_year, 'Operating Cash Flow']) / growth_df.loc[prev_year, 'Operating Cash Flow']) * 100 if 'Operating Cash Flow' in growth_df.columns else None
+    else:
+        revenue_growth = ebitda_growth = net_income_growth = op_cashflow_growth = None
+
+    summary_text = ""
+
+    if revenue_growth is not None:
+        if revenue_growth > 10:
+            summary_text += f"✅ Strong Revenue Growth: {revenue_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ Moderate or Low Revenue Growth: {revenue_growth:.2f}%\n\n"
+    else:
+        summary_text += "⚠️ Revenue Growth data unavailable.\n\n"
+
+    if ebitda_growth is not None:
+        if ebitda_growth > 10:
+            summary_text += f"✅ Strong EBITDA Growth: {ebitda_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ EBITDA Growth below ideal: {ebitda_growth:.2f}%\n\n"
+    else:
+        summary_text += "⚠️ EBITDA Growth data unavailable.\n\n"
+
+    if net_income_growth is not None:
+        if net_income_growth > 10:
+            summary_text += f"✅ Strong Net Income Growth: {net_income_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ Weak Net Income Growth: {net_income_growth:.2f}%\n\n"
+    else:
+        summary_text += "⚠️ Net Income Growth data unavailable.\n\n"
+
+    if op_cashflow_growth is not None:
+        if op_cashflow_growth > 10:
+            summary_text += f"✅ Strong Operating Cash Flow Growth: {op_cashflow_growth:.2f}%\n\n"
+        else:
+            summary_text += f"⚠️ Weak Operating Cash Flow Growth: {op_cashflow_growth:.2f}%\n\n"
+    else:
+        summary_text += "⚠️ Operating Cash Flow Growth data unavailable.\n\n"
+
+    st.subheader("🔍 FinVAR Summary: Growth Overview")
+    st.info(summary_text)
+
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == "leverage":
+    st.subheader("⚡ Leverage Ratios Overview")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    balance_df = all_data['financials'][1]
+    
+    leverage_df = pd.DataFrame()
+    leverage_df['Debt-to-Equity'] = balance_df.loc['totalLiabilities'] / balance_df.loc['totalStockholdersEquity'] if ('totalLiabilities' in balance_df.index and 'totalStockholdersEquity' in balance_df.index) else None
+    leverage_df['Debt-to-Assets'] = balance_df.loc['totalLiabilities'] / balance_df.loc['totalAssets'] if ('totalLiabilities' in balance_df.index and 'totalAssets' in balance_df.index) else None
+    
+    st.plotly_chart(px.bar(leverage_df, x=leverage_df.index, y=['Debt-to-Equity', 'Debt-to-Assets'], title="Leverage Ratios", template="plotly_dark"), use_container_width=True)
+
+    if not leverage_df.empty and not leverage_df['Debt-to-Equity'].isna().all() and not leverage_df['Debt-to-Assets'].isna().all():
+        latest_year = leverage_df.dropna().index.max()
+        debt_equity = leverage_df.loc[latest_year, 'Debt-to-Equity']
+        debt_assets = leverage_df.loc[latest_year, 'Debt-to-Assets']
+
+        summary_text = ""
+        if debt_equity < 1:
+            summary_text += f"✅ Healthy Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+        else:
+            summary_text += f"⚠️ High Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+
+        if debt_assets < 0.5:
+            summary_text += f"✅ Low Debt-to-Assets Ratio: {debt_assets:.2f}\n\n"
+        else:
+            summary_text += f"⚠️ Higher Debt reliance: {debt_assets:.2f}\n\n"
+
+        st.subheader("🔍 FinVAR Summary: Leverage Overview")
+        st.info(summary_text)
+    else:
+        st.warning("⚠️ Leverage data not available for this ticker.")
+
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == "liquidity":
+    st.subheader("💧 Liquidity and Dividend Overview")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    balance_df, cashflow_df = all_data['financials'][1], all_data['financials'][2]
+    
+    liquidity_df = pd.DataFrame()
+    liquidity_df['Current Ratio'] = balance_df.loc['totalCurrentAssets'] / balance_df.loc['totalCurrentLiabilities'] if ('totalCurrentAssets' in balance_df.index and 'totalCurrentLiabilities' in balance_df.index) else None
+    liquidity_df['FCF'] = cashflow_df.loc['operatingCashFlow'] - cashflow_df.loc['capitalExpenditure'] if ('operatingCashFlow' in cashflow_df.index and 'capitalExpenditure' in cashflow_df.index) else None
+    
+    st.dataframe(liquidity_df)
+    st.plotly_chart(px.line(liquidity_df, x=liquidity_df.index, y=['Current Ratio', 'FCF'], markers=True, title="Liquidity & FCF Trends", template="plotly_dark"), use_container_width=True)
+
+    if not liquidity_df.empty and not liquidity_df['Current Ratio'].isna().all() and not liquidity_df['FCF'].isna().all():
+        latest_year = liquidity_df.dropna().index.max()
+        current_ratio = liquidity_df.loc[latest_year, 'Current Ratio']
+        fcf = liquidity_df.loc[latest_year, 'FCF']
+
+        summary_text = ""
+        if current_ratio >= 1.5:
+            summary_text += f"✅ Strong Current Ratio: {current_ratio:.2f}\n\n"
+        else:
+            summary_text += f"⚠️ Low Current Ratio: {current_ratio:.2f}\n\n"
+
+        if fcf > 0:
+            summary_text += f"✅ Positive Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+        else:
+            summary_text += f"⚠️ Negative Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+
+        st.subheader("🔍 FinVAR Summary: Liquidity & Dividend Overview")
+        st.info(summary_text)
+    else:
+        st.warning("⚠️ Liquidity data not available for this ticker.")
+
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == "volatility":
+    st.subheader("📈 Stock Price & Volatility Overview")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    
+    # For historical data, we would need to add an API call to get this data
+    # Since we want to keep API calls minimal, we would need to include this in our initial data fetch
+    # For now, show a message that this requires additional API calls
+    st.warning("Stock price history data requires additional API calls. To maintain API rate limits, this feature has been disabled.")
+    
+    # Placeholder for future implementation that would use the unified API approach
+    st.info("You can modify the get_all_ticker_data() function to include historical prices in the same API call if needed.")
+    
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == "eps_prediction":
+    st.subheader("🔮 EPS Prediction for 2025")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    info = all_data['info']
+    income_df, balance_df, cashflow_df, _ = all_data['financials']
+    
+    try:
+        # Ensure we have all required data
+        if income_df.empty or balance_df.empty or cashflow_df.empty:
+            raise ValueError("Financial data not available for this ticker")
+            
+        # Extract latest year data
+        latest_year = income_df.columns.max()
+        prev_year = income_df.columns[-2] if len(income_df.columns) > 1 else None
+        
+        # Extract necessary metrics (adapting field names to FMP API structure)
+        pe_exi = info.get('trailingPE', np.nan)
+        npm = income_df.loc['netIncome', latest_year] / income_df.loc['revenue', latest_year] if 'netIncome' in income_df.index and 'revenue' in income_df.index else np.nan
+        opmad = income_df.loc['operatingIncome', latest_year] / income_df.loc['revenue', latest_year] if 'operatingIncome' in income_df.index and 'revenue' in income_df.index else np.nan
+        roa = income_df.loc['netIncome', latest_year] / balance_df.loc['totalAssets', latest_year] if 'netIncome' in income_df.index and 'totalAssets' in balance_df.index else np.nan
+        roe = income_df.loc['netIncome', latest_year] / balance_df.loc['totalStockholdersEquity', latest_year] if 'netIncome' in income_df.index and 'totalStockholdersEquity' in balance_df.index else np.nan
+        de_ratio = balance_df.loc['totalLiabilities', latest_year] / balance_df.loc['totalStockholdersEquity', latest_year] if 'totalLiabilities' in balance_df.index and 'totalStockholdersEquity' in balance_df.index else np.nan
+        intcov_ratio = income_df.loc['ebit', latest_year] / income_df.loc['interestExpense', latest_year] if 'ebit' in income_df.index and 'interestExpense' in income_df.index else np.nan
+        curr_ratio = balance_df.loc['totalCurrentAssets', latest_year] / balance_df.loc['totalCurrentLiabilities', latest_year] if 'totalCurrentAssets' in balance_df.index and 'totalCurrentLiabilities' in balance_df.index else np.nan
+        revenue = income_df.loc['revenue', latest_year] if 'revenue' in income_df.index else np.nan
+        eps = info.get('epsTrailingTwelveMonths', np.nan)
+        
+        # Calculate growth rates if previous year data available
+        previous_revenue = income_df.loc['revenue', prev_year] if prev_year and 'revenue' in income_df.index else np.nan
+        revenue_growth = ((revenue - previous_revenue) / previous_revenue) if not np.isnan(previous_revenue) and previous_revenue != 0 else 0
+        eps_growth = 0  # Default if not available
+        
+        # Calculate derived metrics
+        roa_to_revenue = roa / revenue if not np.isnan(roa) and not np.isnan(revenue) and revenue != 0 else 0
+        roe_to_roa = roe / roa if not np.isnan(roe) and not np.isnan(roa) and roa != 0 else 0
+        debt_to_income = de_ratio / revenue if not np.isnan(de_ratio) and not np.isnan(revenue) and revenue != 0 else 0
+        intcov_per_curr = intcov_ratio / curr_ratio if not np.isnan(intcov_ratio) and not np.isnan(curr_ratio) and curr_ratio != 0 else 0
+        opmad_to_npm = opmad / npm if not np.isnan(opmad) and not np.isnan(npm) and npm != 0 else 0
+        
+        # Use simple averages for now
+        eps_3yr_avg = eps
+        revenue_3yr_avg = revenue
+        
+        # Prepare features for model
+        features = np.array([[
+            eps, eps_3yr_avg, roe, npm, opmad_to_npm,
+            revenue_3yr_avg, intcov_per_curr, revenue_growth,
+            roa_to_revenue, intcov_ratio
+        ]])
+        
+        # Handle any NaN values
+        features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # Make prediction
+        predicted_eps = model.predict(features)[0]
+        
+        st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
+        
+    except Exception as e:
+        st.error(f"Error in prediction: {e}")
+    
+    st.button("⬅️ Back", on_click=go_app)
