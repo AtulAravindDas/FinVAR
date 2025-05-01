@@ -126,11 +126,9 @@ if st.session_state.page == 'home':
     if st.button("🚀 Enter FinVAR App", key="enter_app"):
         go_app()
 elif st.session_state.page == 'fresh':
-    # This is the added 'fresh' page state handler
     st.title("🧹 Fresh Start")
     st.success("Your previous analysis has been cleared. You can start a new analysis.")
     
-    # Display options to navigate
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🏠 Return to Home", key="fresh_home", use_container_width=True):
