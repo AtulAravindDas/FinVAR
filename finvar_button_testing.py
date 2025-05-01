@@ -59,9 +59,10 @@ def get_financials_with_fallback(ticker_symbol):
         def convert_to_df(data):
             df = pd.DataFrame(data.get("financials", []))
             if not df.empty:
-                df = df.set_index("date").T
-                df.columns = pd.to_datetime(df.columns)
+                df['date'] = pd.to_datetime(df['date'])
+                df = df.set_index("date").sort_index()
                 df = df.apply(pd.to_numeric, errors='coerce')
+                df = df.T
             return df
 
         income_df = convert_to_df(inc_stmt)
@@ -214,6 +215,7 @@ elif st.session_state.page == 'profitability':
     balance = balance.loc[[col for col in balance.index if col in required_balance]]
 
     income = income.T
+    st.write("Income Index (line items):", income.index.tolist())
     balance = balance.T
     st.write("Available income statement rows:", income.index.tolist())
 
