@@ -216,8 +216,8 @@ elif st.session_state.page == 'profitability':
     balance = balance.T
 
     df = pd.DataFrame()
-    df['Net Income'] = income.loc['netincome']
-    df['Gross Profit'] = income.loc['grossprofit']
+    df['Net Income'] = income.loc['netIncome']
+    df['Gross Profit'] = income.loc['grossProfit']
     df['Total Revenue'] = income.loc['revenue']
     df['EBITDA'] = income.loc['ebitda']
     df['EBIT'] = income.loc['ebit']
