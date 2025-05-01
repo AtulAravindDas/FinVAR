@@ -184,3 +184,90 @@ elif st.session_state.page == 'description':
     description = info.get('description', 'N/A')
     st.write(description)
     st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'price':
+    st.subheader("💰 Current Price")
+    info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
+
+    if info['currentPrice'] is not None and info['previousClose'] is not None:
+        change = info['currentPrice'] - info['previousClose']
+        pct = (change / info['previousClose']) * 100 if info['previousClose'] != 0 else 0
+        st.metric("Current Price (USD)", f"${info['currentPrice']:.2f}", f"{pct:+.2f}%")
+    else:
+        st.warning("⚠️ Price data unavailable.")
+
+    st.button("⬅️ Back", on_click=go_app)
+    
+elif st.session_state.page == 'profitability':
+    st.subheader("📘 Profitability Ratios Overview")
+
+    income, balance, _, _ = get_financials_with_fallback(st.session_state.ticker)
+
+    required_income = ["Revenue", "GrossProfit", "EBITDA", "EBIT", "NetIncome"]
+    required_balance = ["TotalAssets", "TotalEquity", "TotalLiabilities"]
+
+    # Filter and align
+    income = income.loc[[col for col in income.index if col in required_income]]
+    balance = balance.loc[[col for col in balance.index if col in required_balance]]
+
+    income = income.T
+    balance = balance.T
+
+    df = pd.DataFrame()
+    df['Net Income'] = income['NetIncome']
+    df['Gross Profit'] = income['GrossProfit']
+    df['Total Revenue'] = income['Revenue']
+    df['EBITDA'] = income['EBITDA']
+    df['EBIT'] = income['EBIT']
+    df['Shareholders Equity'] = balance['TotalEquity']
+    df['Total Assets'] = balance['TotalAssets']
+    df['Total Liabilities'] = balance['TotalLiabilities']
+
+    df = df.dropna().apply(pd.to_numeric, errors='coerce').dropna()
+    df.index = df.index.year
+
+    # Ratio calculations
+    df['ROE (%)'] = (df['Net Income'] / df['Shareholders Equity']) * 100
+    df['Gross Profit Margin (%)'] = (df['Gross Profit'] / df['Total Revenue']) * 100
+    df['Asset Turnover'] = df['Total Revenue'] / df['Total Assets']
+    df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
+    df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
+
+    st.subheader("📈 Profitability Ratios")
+    st.plotly_chart(px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark"), use_container_width=True)
+    st.plotly_chart(px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark"), use_container_width=True)
+    st.plotly_chart(px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark"), use_container_width=True)
+    st.plotly_chart(px.scatter(df, x=df.index, y="Financial Leverage", size="Financial Leverage", title="Financial Leverage", template="plotly_dark"), use_container_width=True)
+    st.plotly_chart(px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", title="Net Profit Margin (%)", template="plotly_dark"), use_container_width=True)
+    st.plotly_chart(px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, title="EBITDA vs EBIT", template="plotly_dark"), use_container_width=True)
+
+    # Summary
+    latest_year = df.index.max()
+    summary_text = ""
+
+    if df.loc[latest_year, 'ROE (%)'] > 15:
+        summary_text += f"✅ Strong ROE of {df.loc[latest_year, 'ROE (%)']:.2f}% indicates efficient use of equity.\n\n"
+    else:
+        summary_text += f"⚠️ ROE of {df.loc[latest_year, 'ROE (%)']:.2f}% is below ideal.\n\n"
+
+    if df.loc[latest_year, 'Gross Profit Margin (%)'] > 40:
+        summary_text += f"✅ Excellent Gross Margin ({df.loc[latest_year, 'Gross Profit Margin (%)']:.2f}%).\n\n"
+    elif df.loc[latest_year, 'Gross Profit Margin (%)'] > 20:
+        summary_text += f"✅ Moderate Gross Margin ({df.loc[latest_year, 'Gross Profit Margin (%)']:.2f}%).\n\n"
+    else:
+        summary_text += f"⚠️ Weak Gross Margin ({df.loc[latest_year, 'Gross Profit Margin (%)']:.2f}%).\n\n"
+
+    if df.loc[latest_year, 'Net Profit Margin (%)'] > 10:
+        summary_text += f"✅ Healthy Net Profit Margin ({df.loc[latest_year, 'Net Profit Margin (%)']:.2f}%).\n\n"
+    else:
+        summary_text += f"⚠️ Thin Net Profit Margin ({df.loc[latest_year, 'Net Profit Margin (%)']:.2f}%).\n\n"
+
+    if df.loc[latest_year, 'Asset Turnover'] > 1:
+        summary_text += f"✅ High Asset Turnover ({df.loc[latest_year, 'Asset Turnover']:.2f}).\n\n"
+    else:
+        summary_text += f"⚠️ Low Asset Turnover ({df.loc[latest_year, 'Asset Turnover']:.2f}).\n\n"
+
+    st.subheader("🔍 FinVAR Summary: Profitability Overview")
+    st.info(summary_text)
+    st.button("⬅️ Back", on_click=go_app)
+
