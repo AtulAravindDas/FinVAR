@@ -219,6 +219,8 @@ elif st.session_state.page == 'profitability':
     balance = balance.T
     st.write("Available income statement rows:", income.index.tolist())
 
+    def safe_get(df, key):
+        return df.loc[key] if key in df.index else pd.Series([np.nan] * df.shape[1], index=df.columns)
     df = pd.DataFrame()
     df['Net Income'] = income.loc['netincome']
     df['Gross Profit'] = income.loc['grossprofit']
