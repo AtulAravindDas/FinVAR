@@ -521,162 +521,100 @@ elif st.session_state.page == "eps_prediction":
     income_df, balance_df, cashflow_df, _ = all_data['financials']
     
     try:
-        # Ensure we have all required data
         if income_df.empty or balance_df.empty or cashflow_df.empty:
-            raise ValueError("Financial data not available for this ticker")
-            
-        # Get the latest year data
+            raise ValueError("Financial data not available")
+
         latest_year = income_df.columns.max()
         prev_year = income_df.columns[-2] if len(income_df.columns) > 1 else None
-        
-        # Extract necessary metrics with better error handling
-        try:
-            pe_exi = info.get('trailingPE', 0)
-        except:
-            pe_exi = 0
-            
-        try:
-            npm = income_df.loc['netIncome', latest_year] / income_df.loc['revenue', latest_year] if 'netIncome' in income_df.index and 'revenue' in income_df.index else 0
-        except:
-            npm = 0
-            
-        try:
-            opmad = income_df.loc['operatingIncome', latest_year] / income_df.loc['revenue', latest_year] if 'operatingIncome' in income_df.index and 'revenue' in income_df.index else 0
-        except:
-            opmad = 0
-            
-        try:
-            roa = income_df.loc['netIncome', latest_year] / balance_df.loc['totalAssets', latest_year] if 'netIncome' in income_df.index and 'totalAssets' in balance_df.index else 0
-        except:
-            roa = 0
-            
-        try:
-            roe = income_df.loc['netIncome', latest_year] / balance_df.loc['totalStockholdersEquity', latest_year] if 'netIncome' in income_df.index and 'totalStockholdersEquity' in balance_df.index else 0
-        except:
-            roe = 0
-            
-        try:
-            de_ratio = balance_df.loc['totalLiabilities', latest_year] / balance_df.loc['totalStockholdersEquity', latest_year] if 'totalLiabilities' in balance_df.index and 'totalStockholdersEquity' in balance_df.index else 0
-        except:
-            de_ratio = 0
-            
-        try:
-            intcov_ratio = income_df.loc['operatingIncome', latest_year] / income_df.loc['interestExpense', latest_year] if 'operatingIncome' in income_df.index and 'interestExpense' in income_df.index and income_df.loc['interestExpense', latest_year] != 0 else 0
-        except:
-            intcov_ratio = 0
-            
-        try:
-            curr_ratio = balance_df.loc['totalCurrentAssets', latest_year] / balance_df.loc['totalCurrentLiabilities', latest_year] if 'totalCurrentAssets' in balance_df.index and 'totalCurrentLiabilities' in balance_df.index else 0
-        except:
-            curr_ratio = 0
-            
-        try:
-            revenue = income_df.loc['revenue', latest_year] if 'revenue' in income_df.index else 0
-        except:
-            revenue = 0
-            
-        try:
-            eps = info.get('epsTrailingTwelveMonths', 0)
-        except:
-            eps = 0
-        
-        # Calculate growth with error handling
-        try:
-            previous_revenue = income_df.loc['revenue', prev_year] if prev_year and 'revenue' in income_df.index else 0
-            revenue_growth = ((revenue - previous_revenue) / previous_revenue) if previous_revenue != 0 else 0
-        except:
-            revenue_growth = 0
-        
-        # Calculate derived metrics with error handling
-        try:
-            roa_to_revenue = roa / revenue if revenue != 0 else 0
-        except:
-            roa_to_revenue = 0
-            
-        try:
-            opmad_to_npm = opmad / npm if npm != 0 else 0
-        except:
-            opmad_to_npm = 0
-            
-        try:
-            intcov_per_curr = intcov_ratio / curr_ratio if curr_ratio != 0 else 0
-        except:
-            intcov_per_curr = 0
-        
-        # Use simple averages
-        eps_3yr_avg = eps
-        revenue_3yr_avg = revenue
-        
-        # Prepare features for model, replacing NaN with 0
+
+        # Extract raw values
+        eps = info.get('epsTrailingTwelveMonths', 0)
+        revenue = income_df.loc['revenue'].get(latest_year, 0)
+        previous_revenue = income_df.loc['revenue'].get(prev_year, 0) if prev_year else 0
+        revenue_growth = ((revenue - previous_revenue) / previous_revenue) if previous_revenue else 0
+
+        net_income = income_df.loc['netIncome'].get(latest_year, 0)
+        operating_income = income_df.loc['operatingIncome'].get(latest_year, 0)
+        interest_expense = income_df.loc.get('interestExpense', pd.Series()).get(latest_year, 0)
+
+        total_assets = balance_df.loc['totalAssets'].get(latest_year, 0)
+        total_equity = balance_df.loc['totalStockholdersEquity'].get(latest_year, 0)
+        total_liabilities = balance_df.loc['totalLiabilities'].get(latest_year, 0)
+        current_assets = balance_df.loc['totalCurrentAssets'].get(latest_year, 0)
+        current_liabilities = balance_df.loc['totalCurrentLiabilities'].get(latest_year, 0)
+
+        # Convert scale if needed
+        eps = eps / 1e6 if eps > 1000 else eps
+        revenue = revenue / 1e6 if revenue > 1e7 else revenue
+        revenue_3yr_avg = revenue  # Placeholder for now
+
+        # Ratios
+        npm = (net_income / revenue) if revenue else 0
+        opmad = (operating_income / revenue) if revenue else 0
+        roa = (net_income / total_assets) if total_assets else 0
+        roe = (net_income / total_equity) if total_equity else 0
+        de_ratio = (total_liabilities / total_equity) if total_equity else 0
+        intcov_ratio = (operating_income / interest_expense) if interest_expense else 0
+        curr_ratio = (current_assets / current_liabilities) if current_liabilities else 0
+        roa_to_revenue = (roa / revenue) if revenue else 0
+        opmad_to_npm = (opmad / npm) if npm else 0
+        intcov_per_curr = (intcov_ratio / curr_ratio) if curr_ratio else 0
+
+        # Clip to WRDS-style ranges
+        npm = np.clip(npm, -1, 1)
+        opmad_to_npm = np.clip(opmad_to_npm, -2, 2)
+        roa = np.clip(roa, -1, 1)
+        roe = np.clip(roe, -2, 2)
+        de_ratio = np.clip(de_ratio, 0, 10)
+        intcov_ratio = np.clip(intcov_ratio, 0, 100)
+        curr_ratio = np.clip(curr_ratio, 0, 10)
+        intcov_per_curr = np.clip(intcov_per_curr, 0, 100)
+        roa_to_revenue = np.clip(roa_to_revenue, -1, 1)
+        revenue_growth = np.clip(revenue_growth, -1, 1)
+
+        # Final features
         features = np.array([[
-            eps, eps_3yr_avg, roe, npm, opmad_to_npm,
+            eps, eps, roe, npm, opmad_to_npm,
             revenue_3yr_avg, intcov_per_curr, revenue_growth,
             roa_to_revenue, intcov_ratio
         ]])
-        
-        # Handle any NaN values explicitly
-        features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
-        
-        # Log the features for debugging
-        st.write("Feature names:", ["eps", "eps_3yr_avg", "roe", "npm", "opmad_to_npm", 
-                                  "revenue_3yr_avg", "intcov_per_curr", "revenue_growth", 
-                                  "roa_to_revenue", "intcov_ratio"])
-        st.write("Feature values (after NaN handling):", features[0])
-        
-        # Make prediction
+        features = np.nan_to_num(features)
+
         predicted_eps = model.predict(features)[0]
-        
-        # Display prediction
         st.success(f"🧠 Predicted EPS for 2025: **${predicted_eps:.2f}**")
-        
-        # Show comparison if current EPS is available
+
         if eps > 0:
             eps_growth_pct = ((predicted_eps - eps) / eps) * 100
             col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Current EPS", f"${eps:.2f}")
-            with col2:
-                st.metric("Projected Growth", f"{eps_growth_pct:+.2f}%")
-            
-            # Simple bar chart
+            col1.metric("Current EPS", f"${eps:.2f}")
+            col2.metric("Projected Growth", f"{eps_growth_pct:+.2f}%")
+
             eps_data = pd.DataFrame({
                 'Year': ['Current', '2025 (Predicted)'],
                 'EPS': [eps, predicted_eps]
             })
-            
-            fig = px.bar(
-                eps_data, 
-                x='Year', 
-                y='EPS', 
-                title="EPS Comparison",
-                template="plotly_dark",
-                color='Year'
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Prediction confidence
+            st.plotly_chart(px.bar(eps_data, x='Year', y='EPS', template='plotly_dark', color='Year'), use_container_width=True)
+
             st.info("""
-            **Prediction Notes**:
-            - This prediction is based on current financial metrics and historical patterns
-            - Actual results may vary due to market conditions and company performance
-            - The model performs best with complete financial data
+            **Prediction Notes:**
+            - Prediction scaled to WRDS-trained model expectations.
+            - Ratios and features have been range-corrected to reduce bias.
+            - Real outcomes can vary due to macro and company-specific shifts.
             """)
-        
+
     except Exception as e:
-        st.error(f"Error in prediction: {str(e)}")
+        st.error(f"Prediction error: {str(e)}")
         st.info("""
         **Prediction Not Available**
-        
-        The EPS prediction requires complete financial data to make accurate forecasts.
+
         This could be due to:
-        - Missing or incomplete financial data from the API
-        - Division by zero in financial ratio calculations
-        - Incompatible data format for the prediction model
-        
-        Try a different stock ticker with more complete financial data.
+        - Missing financial metrics
+        - Division by zero
+        - API data inconsistencies
+
+        Try another ticker with more complete records.
         """)
-    
-    st.write("")
+
     st.write("")
     if st.button("⬅️ Back to Main Menu", key="eps_back", use_container_width=True):
         go_app()
