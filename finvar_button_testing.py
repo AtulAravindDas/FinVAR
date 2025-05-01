@@ -143,17 +143,32 @@ elif st.session_state.page == 'app':
                 set_page('description')
             if st.button("💰 Current Price"):
                 set_page('price')
+            if st.button("📘 Profitability Ratios"):
+                set_page('profitability')
             # More buttons can be added here as new sections are implemented
             if st.button("🧹 Fresh Start"):
                 fresh_start()
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    info = get_ticker_info(st.session_state.ticker)
+    info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
     if 'error' in info:
         st.error("⚠️ Unable to fetch company description. API issue.")
     else:
         st.markdown(f"**{info['description']}**")
+    st.button("⬅️ Back", on_click=go_app)
+  
+elif st.session_state.page == 'price':
+    st.title("💰 Current Stock Price")
+    info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
+    if 'error' in info:
+        st.error("⚠️ Unable to fetch price data. API issue.")
+    elif info['currentPrice'] is not None and info['previousClose'] is not None:
+        change = info['currentPrice'] - info['previousClose']
+        pct_change = (change / info['previousClose']) * 100
+        st.metric("Current Price (USD)", f"${info['currentPrice']:.2f}", f"{pct_change:+.2f}%")
+    else:
+        st.warning("Price data not available.")
     st.button("⬅️ Back", on_click=go_app)
 
 elif st.session_state.page == 'profitability':
@@ -195,15 +210,3 @@ elif st.session_state.page == 'profitability':
 
         st.button("⬅️ Back", on_click=go_app)
 
-elif st.session_state.page == 'price':
-    st.title("💰 Current Stock Price")
-    info = get_ticker_info(st.session_state.ticker)
-    if 'error' in info:
-        st.error("⚠️ Unable to fetch price data. API issue.")
-    elif info['currentPrice'] is not None and info['previousClose'] is not None:
-        change = info['currentPrice'] - info['previousClose']
-        pct_change = (change / info['previousClose']) * 100
-        st.metric("Current Price (USD)", f"${info['currentPrice']:.2f}", f"{pct_change:+.2f}%")
-    else:
-        st.warning("Price data not available.")
-    st.button("⬅️ Back", on_click=go_app)
