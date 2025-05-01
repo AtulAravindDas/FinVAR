@@ -9,6 +9,8 @@ import sklearn
 st.set_page_config(page_title="FinVAR", layout="centered")
 model=joblib.load("final_eps_predictor.pkl")
 
+#Cache problems. Resolve them
+
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 if 'ticker' not in st.session_state:
