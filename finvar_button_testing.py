@@ -1,86 +1,13 @@
-import finnhub
+from yahooquery import Ticker
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import joblib
+import sklearn
 
-# Initialize Finnhub client with secure API key
-finnhub_client = finnhub.Client(api_key=st.secrets["finnhub_api_key"])
-model = joblib.load("final_eps_predictor.pkl")
-
-# Reset ticker cache
-if 'ticker_data_cache' not in st.session_state:
-    st.session_state.ticker_data_cache = {}
-
-# Cache company info (profile + quote) for a ticker
-@st.cache_data(ttl=3600)
-def get_ticker_info(ticker_symbol):
-    ticker_symbol = ticker_symbol.upper()
-    if ticker_symbol in st.session_state.ticker_data_cache and 'info' in st.session_state.ticker_data_cache[ticker_symbol]:
-        return st.session_state.ticker_data_cache[ticker_symbol]['info']
-
-    try:
-        profile = finnhub_client.company_profile2(symbol=ticker_symbol)
-        quote = finnhub_client.quote(symbol=ticker_symbol)
-
-        info = {
-            "longName": profile.get("name", "N/A"),
-            "industry": profile.get("finnhubIndustry", "N/A"),
-            "description": f"{profile.get('name', 'This company')} is a company in the {profile.get('finnhubIndustry', 'N/A')} sector, headquartered in {profile.get('country', 'an unknown location')}.",
-            "currentPrice": quote.get("c", None),
-            "previousClose": quote.get("pc", None),
-            "trailingPE": None,
-            "epsTrailingTwelveMonths": None
-        }
-
-        if ticker_symbol not in st.session_state.ticker_data_cache:
-            st.session_state.ticker_data_cache[ticker_symbol] = {}
-
-        st.session_state.ticker_data_cache[ticker_symbol]['info'] = info
-        return info
-    except Exception as e:
-        return {"error": str(e)}
-
-# Fetch and cache financial statements
-@st.cache_data(ttl=3600)
-def get_financials_with_fallback(ticker_symbol):
-    ticker_symbol = ticker_symbol.upper()
-    if ticker_symbol in st.session_state.ticker_data_cache and 'financials' in st.session_state.ticker_data_cache[ticker_symbol]:
-        return st.session_state.ticker_data_cache[ticker_symbol]['financials']
-
-    try:
-        # Annual financials
-        inc_stmt = finnhub_client.financials(symbol=ticker_symbol, statement='ic', freq='annual')
-        bal_stmt = finnhub_client.financials(symbol=ticker_symbol, statement='bs', freq='annual')
-        cf_stmt = finnhub_client.financials(symbol=ticker_symbol, statement='cf', freq='annual')
-
-        def convert_to_df(data):
-            df = pd.DataFrame(data.get("financials", []))
-            if not df.empty:
-                df = df.set_index("year").T
-                df.columns = pd.to_datetime(df.columns, format='%Y')
-                df = df.apply(pd.to_numeric, errors='coerce')
-            return df
-
-        income_df = convert_to_df(inc_stmt)
-        balance_df = convert_to_df(bal_stmt)
-        cashflow_df = convert_to_df(cf_stmt)
-        history_df = pd.DataFrame()
-
-        result = (income_df, balance_df, cashflow_df, history_df)
-
-        if ticker_symbol not in st.session_state.ticker_data_cache:
-            st.session_state.ticker_data_cache[ticker_symbol] = {}
-
-        st.session_state.ticker_data_cache[ticker_symbol]['financials'] = result
-        return result
-
-    except Exception as e:
-        return (pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
-
-# Main App Interface
 st.set_page_config(page_title="FinVAR", layout="centered")
+model = joblib.load("final_eps_predictor.pkl")
 
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
@@ -100,14 +27,32 @@ def fresh_start():
     st.session_state.ticker = ''
     st.session_state.page = 'fresh'
 
+@st.cache_data
+def load_ticker_data(ticker_symbol):
+    return Ticker(ticker_symbol)
+
+@st.cache_data
+def get_ticker_info(ticker_symbol):
+    t = Ticker(ticker_symbol)
+    return {
+        "profile": t.asset_profile.get(ticker_symbol, {}),
+        "summary": t.summary_detail.get(ticker_symbol, {}),
+        "stats": t.key_stats.get(ticker_symbol, {}),
+        "financials": t.financial_data.get(ticker_symbol, {}),
+        "income": t.income_statement(frequency="a").get(ticker_symbol, {}).get('incomeStatementHistory', []),
+        "balance": t.balance_sheet(frequency="a").get(ticker_symbol, {}).get('balanceSheetHistory', []),
+        "cashflow": t.cash_flow(frequency="a").get(ticker_symbol, {}).get('cashflowStatementHistory', []),
+        "history": t.history(period="1y")
+    }
+
 if st.session_state.page == 'home':
     st.image("FinVAR.png", width=300)
     st.title("📊 FinVAR – Financial Assistant Referee")
     st.markdown("""
     Your financial assistant referee – reviewing every ticker, flagging every risk.
 
-    🧠 **Understand the market.**  
-    🚨 **Flag the risks.**  
+    🧠 **Understand the market.**
+    🚨 **Flag the risks.**
     💼 **Make smarter investment moves.**
     ---
     ## 🚀 What is FinVAR?
@@ -127,47 +72,28 @@ if st.session_state.page == 'home':
 
 elif st.session_state.page == 'app':
     st.title("🔍 FinVAR – Start Analysis")
-    st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL):", value=st.session_state.ticker)
+    st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        if 'info' not in st.session_state.ticker_data_cache.get(st.session_state.ticker, {}):
-            st.session_state.ticker_data_cache[st.session_state.ticker] = st.session_state.ticker_data_cache.get(st.session_state.ticker, {})
-            st.session_state.ticker_data_cache[st.session_state.ticker]['info'] = get_ticker_info(st.session_state.ticker)
-        info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
-        if "error" in info:
-            st.error(f"Error: {info['error']}")
-            st.stop()
+        info = get_ticker_info(st.session_state.ticker)
+        profile = info["profile"]
 
-        st.success(f"Company: {info['longName']}")
-        st.write("Sector:", info["industry"])
-        st.write("📘 Description:", info["description"])
-
-        if info['currentPrice'] is not None and info['previousClose'] is not None:
-            change = info['currentPrice'] - info['previousClose']
-            pct = (change / info['previousClose']) * 100 if info['previousClose'] != 0 else 0
-            st.metric("Price", f"${info['currentPrice']:.2f}", f"{pct:+.2f}%")
+        if not profile:
+            st.error("❌ Invalid ticker. Please try again.")
         else:
-            st.warning("Price data unavailable.")
+            company_name = profile.get('longBusinessSummary', 'N/A')
+            st.success(f"Company: {company_name[:300]}...")
+            st.subheader("📂 Select an Analysis Section:")
 
-        st.subheader("📂 Select an Analysis Section:")
-        if st.button("📝 Show Description"):
-            set_page('description')
-        if st.button("💰 Current Price"):
-            set_page('price')
-        if st.button("📘 Profitability Ratios"):
-            set_page('profitability')
-        if st.button("📈 Growth Overview"):
-            set_page('growth')
-        if st.button("⚡ Leverage Overview"):
-            set_page('leverage')
-        if st.button("💧 Liquidity & Dividend Overview"):
-            set_page('liquidity')
-        if st.button("📉 Stock Price & Volatility"):
-            set_page('volatility')
-        if st.button("🔮 Predict Next Year EPS"):
-            set_page('eps_prediction')
-        if st.button("🧹 Fresh Start"):
-            fresh_start()
+            st.button("📝 Show Description", on_click=lambda: set_page('description'))
+            st.button("💰 Current Price", on_click=lambda: set_page('price'))
+            st.button("📘 Profitability Ratios", on_click=lambda: set_page('profitability'))
+            st.button("📈 Growth Overview", on_click=lambda: set_page('growth'))
+            st.button("⚡ Leverage Overview", on_click=lambda: set_page('leverage'))
+            st.button("💧 Liquidity & Dividend Overview", on_click=lambda: set_page('liquidity'))
+            st.button("📉 Stock Price & Volatility", on_click=lambda: set_page('volatility'))
+            st.button("🔮 Predict Next Year EPS", on_click=lambda: set_page('eps_prediction'))
+            st.button("🧹 Fresh Start", on_click=fresh_start)
 
 elif st.session_state.page == 'fresh':
     st.title("🧹 Fresh Start")
@@ -176,11 +102,86 @@ elif st.session_state.page == 'fresh':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
-    
-    if "error" in info:
-        st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
-        st.stop()
-    description = info.get('description', 'N/A')
-    st.write(description)
+    info = get_ticker_info(st.session_state.ticker)
+    profile = info.get("profile", {})
+    st.write(profile.get('longBusinessSummary', 'Description not available.'))
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'price':
+    st.title("💰 Current Price")
+    info = get_ticker_info(st.session_state.ticker)
+    summary = info.get("summary", {})
+    price = summary.get("previousClose", 'N/A')
+    market_cap = summary.get("marketCap", 'N/A')
+    st.metric("Previous Close", f"${price}")
+    st.metric("Market Cap", f"${market_cap}")
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'profitability':
+    st.title("📘 Profitability Ratios")
+    info = get_ticker_info(st.session_state.ticker)
+    financials = info.get("financials", {})
+    roe = financials.get("returnOnEquity", 'N/A')
+    roa = financials.get("returnOnAssets", 'N/A')
+    margin = financials.get("profitMargins", 'N/A')
+    st.write(f"**ROE:** {roe}")
+    st.write(f"**ROA:** {roa}")
+    st.write(f"**Profit Margin:** {margin}")
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'growth':
+    st.title("📈 Growth Overview")
+    info = get_ticker_info(st.session_state.ticker)
+    financials = info.get("financials", {})
+    revenue = financials.get("totalRevenue", 'N/A')
+    ebitda = financials.get("ebitda", 'N/A')
+    st.write(f"**Revenue:** {revenue}")
+    st.write(f"**EBITDA:** {ebitda}")
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'leverage':
+    st.title("⚡ Leverage Overview")
+    info = get_ticker_info(st.session_state.ticker)
+    financials = info.get("financials", {})
+    debt_equity = financials.get("debtToEquity", 'N/A')
+    st.write(f"**Debt to Equity:** {debt_equity}")
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'liquidity':
+    st.title("💧 Liquidity & Dividend Overview")
+    info = get_ticker_info(st.session_state.ticker)
+    financials = info.get("financials", {})
+    current_ratio = financials.get("currentRatio", 'N/A')
+    free_cash_flow = financials.get("freeCashflow", 'N/A')
+    st.write(f"**Current Ratio:** {current_ratio}")
+    st.write(f"**Free Cash Flow:** {free_cash_flow}")
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'volatility':
+    st.title("📉 Stock Price & Volatility")
+    info = get_ticker_info(st.session_state.ticker)
+    hist = info.get("history", pd.DataFrame())
+    if not hist.empty:
+        hist['Daily Return'] = hist['close'].pct_change()
+        volatility = hist['Daily Return'].std() * np.sqrt(252)
+        st.line_chart(hist['close'])
+        st.subheader(f"Annualized Volatility: {volatility:.2%}")
+    else:
+        st.warning("No historical data available.")
+    st.button("⬅️ Back", on_click=go_app)
+
+elif st.session_state.page == 'eps_prediction':
+    st.title("🔮 Predict Next Year EPS")
+    info = get_ticker_info(st.session_state.ticker)
+    stats = info.get("stats", {})
+    financials = info.get("financials", {})
+    eps = stats.get("trailingEps", np.nan)
+    roe = financials.get("returnOnEquity", np.nan)
+    margin = financials.get("profitMargins", np.nan)
+    debt_equity = financials.get("debtToEquity", np.nan)
+    current_ratio = financials.get("currentRatio", np.nan)
+    features = np.array([[eps, roe, margin, debt_equity, current_ratio]])
+    features = np.nan_to_num(features)
+    prediction = model.predict(features)[0]
+    st.success(f"Predicted EPS: ${prediction:.2f}")
     st.button("⬅️ Back", on_click=go_app)
