@@ -105,7 +105,6 @@ def go_app():
 def set_page(name):
     st.session_state.page = name
     # Force rerun to update the UI immediately
-    st.experimental_rerun()
 
 def fresh_start():
     st.session_state.ticker = ''
