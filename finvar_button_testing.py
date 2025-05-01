@@ -19,18 +19,15 @@ def get_all_ticker_data(ticker_symbol):
         return st.session_state.ticker_data_cache[ticker_symbol]['complete_data']
 
     try:
-        # Use a session to make a single connection for all requests
         with requests.Session() as session:
-            # Make all API calls at once
             profile_url = f"{BASE_URL}/profile/{ticker_symbol}?apikey={API_KEY}"
             quote_url = f"{BASE_URL}/quote/{ticker_symbol}?apikey={API_KEY}"
             income_url = f"{BASE_URL}/income-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
             balance_url = f"{BASE_URL}/balance-sheet-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
             cashflow_url = f"{BASE_URL}/cash-flow-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
-            # Add historical price data endpoint
+            
             historical_url = f"{BASE_URL}/historical-price-full/{ticker_symbol}?apikey={API_KEY}"
             
-            # Execute all requests
             profile_data = session.get(profile_url).json()
             quote_data = session.get(quote_url).json()
             income_data = session.get(income_url).json()
@@ -44,7 +41,6 @@ def get_all_ticker_data(ticker_symbol):
         profile = profile_data[0]
         quote = quote_data[0]
 
-        # Company info
         info = {
             "longName": profile.get("companyName", "N/A"),
             "industry": profile.get("industry", "N/A"),
@@ -55,31 +51,26 @@ def get_all_ticker_data(ticker_symbol):
             "epsTrailingTwelveMonths": profile.get("eps", None)
         }
         
-        # Financial statements
         income_df = pd.DataFrame(income_data).set_index("date").T if income_data else pd.DataFrame()
         balance_df = pd.DataFrame(balance_data).set_index("date").T if balance_data else pd.DataFrame()
         cashflow_df = pd.DataFrame(cashflow_data).set_index("date").T if cashflow_data else pd.DataFrame()
         
-        # Historical price data
         history_df = pd.DataFrame(historical_data.get('historical', [])) if 'historical' in historical_data else pd.DataFrame()
         if not history_df.empty:
             history_df['date'] = pd.to_datetime(history_df['date'])
             history_df.set_index('date', inplace=True)
             history_df = history_df.sort_index()
         
-        # Process dataframes
         for df in [income_df, balance_df, cashflow_df]:
             if not df.empty:
                 df.columns = pd.to_datetime(df.columns)
                 df = df.apply(pd.to_numeric, errors='coerce')
         
-        # Store complete data
         complete_data = {
             'info': info,
             'financials': (income_df, balance_df, cashflow_df, history_df)
         }
         
-        # Cache the results
         st.session_state.ticker_data_cache[ticker_symbol] = {'complete_data': complete_data}
         return complete_data
         
@@ -104,7 +95,6 @@ def go_app():
 
 def set_page(name):
     st.session_state.page = name
-    # Force rerun to update the UI immediately
 
 def fresh_start():
     st.session_state.ticker = ''
@@ -135,13 +125,25 @@ if st.session_state.page == 'home':
     Click the button below to start!""")
     if st.button("🚀 Enter FinVAR App", key="enter_app"):
         go_app()
+elif st.session_state.page == 'fresh':
+    # This is the added 'fresh' page state handler
+    st.title("🧹 Fresh Start")
+    st.success("Your previous analysis has been cleared. You can start a new analysis.")
+    
+    # Display options to navigate
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🏠 Return to Home", key="fresh_home", use_container_width=True):
+            go_home()
+    with col2:
+        if st.button("📊 New Analysis", key="fresh_new", use_container_width=True):
+            go_app()
 
 elif st.session_state.page == 'app':
     st.title("🔍 FinVAR – Start Analysis")
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        # Get all data at once
         all_data = get_all_ticker_data(st.session_state.ticker)
         info = all_data['info']
 
@@ -255,29 +257,31 @@ elif st.session_state.page == 'profitability':
         asset_turnover_latest = df.loc[latest_year, 'Asset Turnover']
         summary_text = ""
         if roe_latest > 15:
-            summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n"
+            summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n\n"
         else:
-            summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n"
+            summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n\n"
 
         if gross_margin_latest > 40:
-            summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n"
+            summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n\n"
         elif gross_margin_latest > 20:
-            summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n"
+            summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n\n"
         else:
-            summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n"
+            summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n\n"
 
         if net_margin_latest > 10:
-            summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n"
+            summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n\n"
         else:
-            summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n"
+            summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n\n"
 
         if asset_turnover_latest > 1:
-            summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n"
+            summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n\n"
         else:
-            summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n"
+            summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n\n"
 
         st.subheader("🔍 FinVAR Summary: Profitability Overview")
-        st.info(summary_text)
+        for line in summary_text.strip().split("\n"):
+            if line.strip():  # ignore empty lines
+                st.info(line.strip())
 
         st.write("")
         st.write("")
@@ -446,13 +450,13 @@ elif st.session_state.page == "volatility":
     if history_df.empty:
         st.warning("⚠️ Historical price data not available for this ticker.")
     else:
-        # Calculate daily returns
+        
         history_df['Daily Return'] = history_df['close'].pct_change()
         
-        # Calculate annualized volatility (252 trading days per year)
+        
         volatility = history_df['Daily Return'].std() * np.sqrt(252)
         
-        # Display stock price chart
+
         st.subheader("Price History")
         fig = px.line(
             history_df, 
@@ -462,10 +466,8 @@ elif st.session_state.page == "volatility":
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Display volatility metrics
         st.subheader(f"Annualized Volatility: {volatility:.2%}")
         
-        # Show additional metrics in columns
         col1, col2, col3 = st.columns(3)
         with col1:
             recent_close = history_df['close'].iloc[-1]
@@ -477,7 +479,6 @@ elif st.session_state.page == "volatility":
             year_low = history_df['low'].min()
             st.metric("52-Week Low", f"${year_low:.2f}")
             
-        # Add daily returns histogram
         st.subheader("Daily Returns Distribution")
         fig_hist = px.histogram(
             history_df, 
@@ -488,7 +489,6 @@ elif st.session_state.page == "volatility":
         )
         st.plotly_chart(fig_hist, use_container_width=True)
         
-        # Summary text
         summary_text = ""
         if volatility > 0.4:
             summary_text += f"⚠️ High volatility ({volatility:.2%}): This stock shows significant price swings, indicating higher risk.\n\n"
@@ -497,7 +497,6 @@ elif st.session_state.page == "volatility":
         else:
             summary_text += f"✅ Low volatility ({volatility:.2%}): This stock shows relatively stable price action.\n\n"
             
-        # Add price trend information
         returns_30d = (history_df['close'].iloc[-1] / history_df['close'].iloc[-min(30, len(history_df))]) - 1
         if returns_30d > 0.05:
             summary_text += f"✅ Strong recent uptrend: {returns_30d:.2%} over the last month.\n\n"
@@ -527,7 +526,6 @@ elif st.session_state.page == "eps_prediction":
         latest_year = income_df.columns.max()
         prev_year = income_df.columns[-2] if len(income_df.columns) > 1 else None
 
-        # Extract raw values using .loc[row, col]
         eps = info.get('epsTrailingTwelveMonths', 0)
         revenue = income_df.loc['revenue', latest_year] if 'revenue' in income_df.index else 0
         previous_revenue = income_df.loc['revenue', prev_year] if prev_year and 'revenue' in income_df.index else 0
@@ -543,12 +541,10 @@ elif st.session_state.page == "eps_prediction":
         current_assets = balance_df.loc['totalCurrentAssets', latest_year] if 'totalCurrentAssets' in balance_df.index else 0
         current_liabilities = balance_df.loc['totalCurrentLiabilities', latest_year] if 'totalCurrentLiabilities' in balance_df.index else 0
 
-        # Convert scale if needed
-        eps = eps / 1e6 if eps > 1000 else eps
-        revenue = revenue / 1e6 if revenue > 1e7 else revenue
-        revenue_3yr_avg = revenue  # Placeholder for now
+        eps = eps / 1e6 if eps is not None and eps > 1000 else (eps if eps is not None else 0)
+        revenue = revenue / 1e6 if revenue is not None and revenue > 1e7 else (revenue if revenue is not None else 0)
+        revenue_3yr_avg = revenue  
 
-        # Ratios
         npm = (net_income / revenue) if revenue else 0
         opmad = (operating_income / revenue) if revenue else 0
         roa = (net_income / total_assets) if total_assets else 0
@@ -560,7 +556,6 @@ elif st.session_state.page == "eps_prediction":
         opmad_to_npm = (opmad / npm) if npm else 0
         intcov_per_curr = (intcov_ratio / curr_ratio) if curr_ratio else 0
 
-        # Clip to WRDS-style ranges
         npm = np.clip(npm, -1, 1)
         opmad_to_npm = np.clip(opmad_to_npm, -2, 2)
         roa = np.clip(roa, -1, 1)
@@ -572,7 +567,6 @@ elif st.session_state.page == "eps_prediction":
         roa_to_revenue = np.clip(roa_to_revenue, -1, 1)
         revenue_growth = np.clip(revenue_growth, -1, 1)
 
-        # Final features
         features = np.array([[
             eps, eps, roe, npm, opmad_to_npm,
             revenue_3yr_avg, intcov_per_curr, revenue_growth,
