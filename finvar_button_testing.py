@@ -33,17 +33,20 @@ def load_ticker_data(ticker_symbol):
 
 @st.cache_data
 def get_ticker_info(ticker_symbol):
-    t = Ticker(ticker_symbol)
-    return {
-        "profile": t.asset_profile.get(ticker_symbol, {}),
-        "summary": t.summary_detail.get(ticker_symbol, {}),
-        "stats": t.key_stats.get(ticker_symbol, {}),
-        "financials": t.financial_data.get(ticker_symbol, {}),
-        "income": t.income_statement(frequency="a").get(ticker_symbol, {}).get('incomeStatementHistory', []),
-        "balance": t.balance_sheet(frequency="a").get(ticker_symbol, {}).get('balanceSheetHistory', []),
-        "cashflow": t.cash_flow(frequency="a").get(ticker_symbol, {}).get('cashflowStatementHistory', []),
-        "history": t.history(period="1y")
-    }
+    try:
+        t = Ticker(ticker_symbol, timeout=5)
+        return {
+            "profile": t.asset_profile.get(ticker_symbol, {}),
+            "summary": t.summary_detail.get(ticker_symbol, {}),
+            "stats": t.key_stats.get(ticker_symbol, {}),
+            "financials": t.financial_data.get(ticker_symbol, {}),
+            "income": t.income_statement(frequency="a").get(ticker_symbol, {}).get('incomeStatementHistory', []),
+            "balance": t.balance_sheet(frequency="a").get(ticker_symbol, {}).get('balanceSheetHistory', []),
+            "cashflow": t.cash_flow(frequency="a").get(ticker_symbol, {}).get('cashflowStatementHistory', []),
+            "history": t.history(period="1y")
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 if st.session_state.page == 'home':
     st.image("FinVAR.png", width=300)
