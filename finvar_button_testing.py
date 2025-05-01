@@ -115,6 +115,37 @@ if st.session_state.page == 'home':
     ---
     Click the button below to start!""")
     st.button("🚀 Enter FinVAR App", on_click=go_app)
+
+elif st.session_state.page == 'app':
+    st.title("🔍 FinVAR – Start Analysis")
+    st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
+
+    if st.session_state.ticker:
+        info = get_ticker_info(st.session_state.ticker)
+
+        if 'error' in info:
+            st.error(f"Error fetching data: {info['error']}")
+        else:
+            st.success(f"Company: {info['longName']}")
+            st.write("Sector:", info.get("industry", "N/A"))
+            st.write("📘 Description:", info.get("description", "N/A"))
+
+            if info['currentPrice'] is not None and info['previousClose'] is not None:
+                change = info['currentPrice'] - info['previousClose']
+                pct = (change / info['previousClose']) * 100 if info['previousClose'] != 0 else 0
+                st.metric("Price", f"${info['currentPrice']:.2f}", f"{pct:+.2f}%")
+            else:
+                st.warning("Price data unavailable.")
+
+            st.subheader("📂 Select an Analysis Section:")
+            if st.button("📝 Show Description"):
+                set_page('description')
+            if st.button("💰 Current Price"):
+                set_page('price')
+            # More buttons can be added here as new sections are implemented
+            if st.button("🧹 Fresh Start"):
+                fresh_start()
+
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
     info = get_ticker_info(st.session_state.ticker)
