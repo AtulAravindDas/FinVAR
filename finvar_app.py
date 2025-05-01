@@ -255,26 +255,26 @@ elif st.session_state.page == 'profitability':
         asset_turnover_latest = df.loc[latest_year, 'Asset Turnover']
         summary_text = ""
         if roe_latest > 15:
-            summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n"
+            summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n\n"
         else:
-            summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n"
+            summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n\n"
 
         if gross_margin_latest > 40:
-            summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n"
+            summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n\n"
         elif gross_margin_latest > 20:
-            summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n"
+            summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n\n"
         else:
-            summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n"
+            summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n\n"
 
         if net_margin_latest > 10:
-            summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n"
+            summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n\n"
         else:
-            summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n"
+            summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n\n"
 
         if asset_turnover_latest > 1:
-            summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n"
+            summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n\n"
         else:
-            summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n"
+            summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n\n"
 
         st.subheader("🔍 FinVAR Summary: Profitability Overview")
         st.info(summary_text)
