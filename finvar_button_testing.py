@@ -13,16 +13,27 @@ if 'ticker_data_cache' not in st.session_state:
     st.session_state.ticker_data_cache = {}
 
 @st.cache_data(ttl=3600)
-def get_ticker_info(ticker_symbol):
+def get_all_ticker_data(ticker_symbol):
     ticker_symbol = ticker_symbol.upper()
-    if ticker_symbol in st.session_state.ticker_data_cache and 'info' in st.session_state.ticker_data_cache[ticker_symbol]:
-        return st.session_state.ticker_data_cache[ticker_symbol]['info']
+    if ticker_symbol in st.session_state.ticker_data_cache and 'complete_data' in st.session_state.ticker_data_cache[ticker_symbol]:
+        return st.session_state.ticker_data_cache[ticker_symbol]['complete_data']
 
     try:
-        profile_url = f"{BASE_URL}/profile/{ticker_symbol}?apikey={API_KEY}"
-        quote_url = f"{BASE_URL}/quote/{ticker_symbol}?apikey={API_KEY}"
-        profile_data = requests.get(profile_url).json()
-        quote_data = requests.get(quote_url).json()
+        # Use a session to make a single connection for all requests
+        with requests.Session() as session:
+            # Make all API calls at once
+            profile_url = f"{BASE_URL}/profile/{ticker_symbol}?apikey={API_KEY}"
+            quote_url = f"{BASE_URL}/quote/{ticker_symbol}?apikey={API_KEY}"
+            income_url = f"{BASE_URL}/income-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
+            balance_url = f"{BASE_URL}/balance-sheet-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
+            cashflow_url = f"{BASE_URL}/cash-flow-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
+            
+            # Execute all requests
+            profile_data = session.get(profile_url).json()
+            quote_data = session.get(quote_url).json()
+            income_data = session.get(income_url).json()
+            balance_data = session.get(balance_url).json()
+            cashflow_data = session.get(cashflow_url).json()
 
         if not profile_data or not quote_data:
             raise ValueError("Invalid data returned from FMP API.")
@@ -30,6 +41,7 @@ def get_ticker_info(ticker_symbol):
         profile = profile_data[0]
         quote = quote_data[0]
 
+        # Company info
         info = {
             "longName": profile.get("companyName", "N/A"),
             "industry": profile.get("industry", "N/A"),
@@ -39,37 +51,34 @@ def get_ticker_info(ticker_symbol):
             "trailingPE": profile.get("pe", None),
             "epsTrailingTwelveMonths": profile.get("eps", None)
         }
-
-        st.session_state.ticker_data_cache.setdefault(ticker_symbol, {})['info'] = info
-        return info
-    except Exception as e:
-        return {"error": str(e)}
-
-@st.cache_data(ttl=3600)
-def get_financials_with_fallback(ticker_symbol):
-    ticker_symbol = ticker_symbol.upper()
-    if ticker_symbol in st.session_state.ticker_data_cache and 'financials' in st.session_state.ticker_data_cache[ticker_symbol]:
-        return st.session_state.ticker_data_cache[ticker_symbol]['financials']
-
-    try:
-        income_url = f"{BASE_URL}/income-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
-        balance_url = f"{BASE_URL}/balance-sheet-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
-        cashflow_url = f"{BASE_URL}/cash-flow-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
-
-        income_df = pd.DataFrame(requests.get(income_url).json()).set_index("date").T
-        balance_df = pd.DataFrame(requests.get(balance_url).json()).set_index("date").T
-        cashflow_df = pd.DataFrame(requests.get(cashflow_url).json()).set_index("date").T
+        
+        # Financial statements
+        income_df = pd.DataFrame(income_data).set_index("date").T if income_data else pd.DataFrame()
+        balance_df = pd.DataFrame(balance_data).set_index("date").T if balance_data else pd.DataFrame()
+        cashflow_df = pd.DataFrame(cashflow_data).set_index("date").T if cashflow_data else pd.DataFrame()
         history_df = pd.DataFrame()
-
+        
+        # Process dataframes
         for df in [income_df, balance_df, cashflow_df]:
-            df.columns = pd.to_datetime(df.columns)
-            df = df.apply(pd.to_numeric, errors='coerce')
-
-        result = (income_df, balance_df, cashflow_df, history_df)
-        st.session_state.ticker_data_cache.setdefault(ticker_symbol, {})['financials'] = result
-        return result
+            if not df.empty:
+                df.columns = pd.to_datetime(df.columns)
+                df = df.apply(pd.to_numeric, errors='coerce')
+        
+        # Store complete data
+        complete_data = {
+            'info': info,
+            'financials': (income_df, balance_df, cashflow_df, history_df)
+        }
+        
+        # Cache the results
+        st.session_state.ticker_data_cache[ticker_symbol] = {'complete_data': complete_data}
+        return complete_data
+        
     except Exception as e:
-        return (pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
+        return {
+            'info': {"error": str(e)},
+            'financials': (pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
+        }
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 
@@ -121,16 +130,15 @@ elif st.session_state.page == 'app':
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        if 'info' not in st.session_state.ticker_data_cache.get(st.session_state.ticker, {}):
-            st.session_state.ticker_data_cache.setdefault(st.session_state.ticker, {})['info'] = get_ticker_info(st.session_state.ticker)
-        info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
+        # Get all data at once
+        all_data = get_all_ticker_data(st.session_state.ticker)
+        info = all_data['info']
 
         if 'error' in info:
             st.error(f"Error fetching data: {info['error']}")
         else:
             st.success(f"Company: {info['longName']}")
             
-
             if info['currentPrice'] is not None and info['previousClose'] is not None:
                 change = info['currentPrice'] - info['previousClose']
                 pct = (change / info['previousClose']) * 100 if info['previousClose'] != 0 else 0
@@ -151,7 +159,8 @@ elif st.session_state.page == 'app':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    info = all_data['info']
     if 'error' in info:
         st.error("⚠️ Unable to fetch company description. API issue.")
     else:
@@ -160,7 +169,8 @@ elif st.session_state.page == 'description':
   
 elif st.session_state.page == 'price':
     st.title("💰 Current Stock Price")
-    info = st.session_state.ticker_data_cache[st.session_state.ticker]['info']
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    info = all_data['info']
     if 'error' in info:
         st.error("⚠️ Unable to fetch price data. API issue.")
     elif info['currentPrice'] is not None and info['previousClose'] is not None:
@@ -173,9 +183,8 @@ elif st.session_state.page == 'price':
 
 elif st.session_state.page == 'profitability':
     st.title("📘 Profitability Ratios Overview")
-    if 'financials' not in st.session_state.ticker_data_cache.get(st.session_state.ticker, {}):
-        st.session_state.ticker_data_cache.setdefault(st.session_state.ticker, {})['financials'] = get_financials_with_fallback(st.session_state.ticker)
-    income_df, balance_df, _, _ = st.session_state.ticker_data_cache[st.session_state.ticker]['financials']
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    income_df, balance_df, _, _ = all_data['financials']
 
     if income_df.empty or balance_df.empty:
         st.warning("⚠️ Financial data not available for this ticker.")
@@ -216,37 +225,27 @@ elif st.session_state.page == 'profitability':
         summary_text = ""
         if roe_latest > 15:
             summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n"
-
         else:
             summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n"
 
-
         if gross_margin_latest > 40:
             summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n"
-
         elif gross_margin_latest > 20:
             summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n"
-
         else:
             summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n"
 
-
         if net_margin_latest > 10:
             summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n"
-
         else:
             summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n"
 
-
         if asset_turnover_latest > 1:
             summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n"
-
         else:
             summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n"
-
 
         st.subheader("🔍 FinVAR Summary: Profitability Overview")
         st.info(summary_text)
 
         st.button("⬅️ Back", on_click=go_app)
-
