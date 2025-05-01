@@ -214,8 +214,9 @@ elif st.session_state.page == 'profitability':
 
     income = income.T
     balance = balance.T
+    st.write("Available income statement rows:", income.index.tolist())
 
-    df = pd.DataFrame()
+    '''df = pd.DataFrame()
     df['Net Income'] = income.loc['netIncome']
     df['Gross Profit'] = income.loc['grossProfit']
     df['Total Revenue'] = income.loc['revenue']
@@ -270,6 +271,6 @@ elif st.session_state.page == 'profitability':
         summary_text += f"⚠️ Low Asset Turnover ({df.loc[latest_year, 'Asset Turnover']:.2f}).\n\n"
 
     st.subheader("🔍 FinVAR Summary: Profitability Overview")
-    st.info(summary_text)
+    st.info(summary_text)'''
     st.button("⬅️ Back", on_click=go_app)
 
