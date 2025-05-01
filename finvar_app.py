@@ -1,15 +1,95 @@
-import yfinance as yf
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import joblib
-import sklearn
+import requests
+
+API_KEY = st.secrets["FMP_API_KEY"]
+BASE_URL = "https://financialmodelingprep.com/api/v3"
+model = joblib.load("final_eps_predictor.pkl")
+
+if 'ticker_data_cache' not in st.session_state:
+    st.session_state.ticker_data_cache = {}
+
+@st.cache_data(ttl=3600)
+def get_all_ticker_data(ticker_symbol):
+    ticker_symbol = ticker_symbol.upper()
+    if ticker_symbol in st.session_state.ticker_data_cache and 'complete_data' in st.session_state.ticker_data_cache[ticker_symbol]:
+        return st.session_state.ticker_data_cache[ticker_symbol]['complete_data']
+
+    try:
+        # Use a session to make a single connection for all requests
+        with requests.Session() as session:
+            # Make all API calls at once
+            profile_url = f"{BASE_URL}/profile/{ticker_symbol}?apikey={API_KEY}"
+            quote_url = f"{BASE_URL}/quote/{ticker_symbol}?apikey={API_KEY}"
+            income_url = f"{BASE_URL}/income-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
+            balance_url = f"{BASE_URL}/balance-sheet-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
+            cashflow_url = f"{BASE_URL}/cash-flow-statement/{ticker_symbol}?limit=5&apikey={API_KEY}"
+            # Add historical price data endpoint
+            historical_url = f"{BASE_URL}/historical-price-full/{ticker_symbol}?apikey={API_KEY}"
+            
+            # Execute all requests
+            profile_data = session.get(profile_url).json()
+            quote_data = session.get(quote_url).json()
+            income_data = session.get(income_url).json()
+            balance_data = session.get(balance_url).json()
+            cashflow_data = session.get(cashflow_url).json()
+            historical_data = session.get(historical_url).json()
+
+        if not profile_data or not quote_data:
+            raise ValueError("Invalid data returned from FMP API.")
+
+        profile = profile_data[0]
+        quote = quote_data[0]
+
+        # Company info
+        info = {
+            "longName": profile.get("companyName", "N/A"),
+            "industry": profile.get("industry", "N/A"),
+            "description": profile.get("description", "N/A"),
+            "currentPrice": quote.get("price", None),
+            "previousClose": quote.get("previousClose", None),
+            "trailingPE": profile.get("pe", None),
+            "epsTrailingTwelveMonths": profile.get("eps", None)
+        }
+        
+        # Financial statements
+        income_df = pd.DataFrame(income_data).set_index("date").T if income_data else pd.DataFrame()
+        balance_df = pd.DataFrame(balance_data).set_index("date").T if balance_data else pd.DataFrame()
+        cashflow_df = pd.DataFrame(cashflow_data).set_index("date").T if cashflow_data else pd.DataFrame()
+        
+        # Historical price data
+        history_df = pd.DataFrame(historical_data.get('historical', [])) if 'historical' in historical_data else pd.DataFrame()
+        if not history_df.empty:
+            history_df['date'] = pd.to_datetime(history_df['date'])
+            history_df.set_index('date', inplace=True)
+            history_df = history_df.sort_index()
+        
+        # Process dataframes
+        for df in [income_df, balance_df, cashflow_df]:
+            if not df.empty:
+                df.columns = pd.to_datetime(df.columns)
+                df = df.apply(pd.to_numeric, errors='coerce')
+        
+        # Store complete data
+        complete_data = {
+            'info': info,
+            'financials': (income_df, balance_df, cashflow_df, history_df)
+        }
+        
+        # Cache the results
+        st.session_state.ticker_data_cache[ticker_symbol] = {'complete_data': complete_data}
+        return complete_data
+        
+    except Exception as e:
+        return {
+            'info': {"error": str(e)},
+            'financials': (pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
+        }
 
 st.set_page_config(page_title="FinVAR", layout="centered")
-model=joblib.load("final_eps_predictor.pkl")
-
-#Cache problems. Resolve them
 
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
@@ -18,26 +98,26 @@ if 'ticker' not in st.session_state:
 
 def go_home():
     st.session_state.page = 'home'
+
 def go_app():
     st.session_state.page = 'app'
+
 def set_page(name):
     st.session_state.page = name
+    # Force rerun to update the UI immediately
+
 def fresh_start():
     st.session_state.ticker = ''
     st.session_state.page = 'fresh'
 
-@st.cache_resource
-def load_ticker(ticker_symbol):
-    return yf.Ticker(ticker_symbol)
-
 if st.session_state.page == 'home':
-    st.image("FinVAR.png",width=300)
+    st.image("FinVAR.png", width=300)
     st.title("📊 FinVAR – Financial Assistant Referee")
     st.markdown("""
     Your financial assistant referee – reviewing every ticker, flagging every risk.
 
-    🧠 **Understand the market.**
-    🚨 **Flag the risks.**
+    🧠 **Understand the market.**  
+    🚨 **Flag the risks.**  
     💼 **Make smarter investment moves.**
     ---
     ## 🚀 What is FinVAR?
@@ -53,151 +133,173 @@ if st.session_state.page == 'home':
     - **EPS Prediction Engine:** Trained ML model forecasts future EPS based on real-time financials.
     ---
     Click the button below to start!""")
+    if st.button("🚀 Enter FinVAR App", key="enter_app"):
+        go_app()
 
-
-    st.button("🚀 Enter FinVAR App", on_click=go_app)
 elif st.session_state.page == 'app':
     st.title("🔍 FinVAR – Start Analysis")
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        ticker = yf.Ticker(st.session_state.ticker)
-        info = ticker.info
+        # Get all data at once
+        all_data = get_all_ticker_data(st.session_state.ticker)
+        info = all_data['info']
 
-        if not info or 'longName' not in info:
-            st.error("❌ Invalid ticker. Please try again.")
+        if 'error' in info:
+            st.error(f"Error fetching data: {info['error']}")
         else:
-            company_name = info.get('longName', 'N/A')
-            st.success(f"Company: {company_name}")
+            st.success(f"Company: {info['longName']}")
+            
+            if info['currentPrice'] is not None and info['previousClose'] is not None:
+                change = info['currentPrice'] - info['previousClose']
+                pct = (change / info['previousClose']) * 100 if info['previousClose'] != 0 else 0
+                st.metric("Price", f"${info['currentPrice']:.2f}", f"{pct:+.2f}%")
+            else:
+                st.warning("Price data unavailable.")
 
             st.subheader("📂 Select an Analysis Section:")
-
-        if st.button("📝 Show Description"):
-            set_page('description')
-        if st.button("💰 Current Price"):
-            set_page('price')
-        if st.button("📘 Profitability Ratios"):
-            set_page('profitability')
-        if st.button("📈 Growth Overview"):
-            set_page('growth')
-        if st.button("⚡ Leverage Overview"):
-            set_page('leverage')
-        if st.button("💧 Liquidity & Dividend Overview"):
-            set_page('liquidity')
-        if st.button("📉 Stock Price & Volatility"):
-            set_page('volatility')
-        if st.button("🔮 Predict Next Year EPS"):
-            set_page('eps_prediction')
-        if st.button("🧹 Fresh Start"):
-            fresh_start()
-
-
-elif st.session_state.page == 'fresh':
-    st.title("🧹 Fresh Start")
-    st.success("You have refreshed the app! 🔄")
-    st.button("🏠 Go to Home", on_click=go_home)
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📝 Show Description", key="btn_description", use_container_width=True):
+                    set_page('description')
+                if st.button("📘 Profitability Ratios", key="btn_profit", use_container_width=True):
+                    set_page('profitability')
+                if st.button("⚡ Leverage Overview", key="btn_leverage", use_container_width=True):
+                    set_page('leverage')
+                if st.button("📉 Stock Price & Volatility", key="btn_volatility", use_container_width=True):
+                    set_page('volatility')
+            with col2:
+                if st.button("💰 Current Price", key="btn_price", use_container_width=True):
+                    set_page('price')
+                if st.button("📈 Growth Overview", key="btn_growth", use_container_width=True):
+                    set_page('growth')
+                if st.button("💧 Liquidity & Dividend", key="btn_liquidity", use_container_width=True):
+                    set_page('liquidity')
+                if st.button("🔮 Predict Next Year EPS", key="btn_eps", use_container_width=True):
+                    set_page('eps_prediction')
+            
+            if st.button("🧹 Fresh Start", key="btn_fresh", use_container_width=True):
+                fresh_start()
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    ticker = yf.Ticker(st.session_state.ticker)
-    description = ticker.info.get('longBusinessSummary', 'N/A')
-    st.write(description)
-    st.button("⬅️ Back", on_click=go_app)
-
-elif st.session_state.page == 'price':
-    st.subheader("💰 Current Price")
-    ticker = yf.Ticker(st.session_state.ticker)
-    price = ticker.info.get('currentPrice', 'N/A')
-    prev_close = ticker.info.get('previousClose', 'N/A')
-    if price != 'N/A' and prev_close != 'N/A':
-        change = price - prev_close
-        pct_change = (change / prev_close) * 100
-        st.metric("Current Price (USD)", f"${price:.2f}", f"{pct_change:+.2f}%")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    info = all_data['info']
+    if 'error' in info:
+        st.error("⚠️ Unable to fetch company description. API issue.")
     else:
-        st.warning("Price data unavailable.")
-    st.button("⬅️ Back", on_click=go_app)
+        st.markdown(f"**{info['description']}**")
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="desc_back", use_container_width=True):
+        go_app()
+  
+elif st.session_state.page == 'price':
+    st.title("💰 Current Stock Price")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    info = all_data['info']
+    if 'error' in info:
+        st.error("⚠️ Unable to fetch price data. API issue.")
+    elif info['currentPrice'] is not None and info['previousClose'] is not None:
+        change = info['currentPrice'] - info['previousClose']
+        pct_change = (change / info['previousClose']) * 100
+        st.metric("Current Price (USD)", f"${info['currentPrice']:.2f}", f"{pct_change:+.2f}%")
+    else:
+        st.warning("Price data not available.")
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="price_back", use_container_width=True):
+        go_app()
 
 elif st.session_state.page == 'profitability':
-    st.subheader("📘 Profitability Ratios Overview")
-    ticker = load_ticker(st.session_state.ticker)
+    st.title("📘 Profitability Ratios Overview")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    income_df, balance_df, _, _ = all_data['financials']
 
-    income = ticker.financials
-    balance = ticker.balance_sheet
-    ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
-    ideal_balance_order = ["Total Assets", "Common Stock Equity", "Total Liabilities Net Minority Interest"]
-    income = income.loc[[item for item in ideal_income_order if item in income.index]]
-    balance = balance.loc[[item for item in ideal_balance_order if item in balance.index]]
-    income = income.T
-    balance = balance.T
-    df = pd.DataFrame()
-    df['Net Income'] = income['Net Income']
-    df['Gross Profit'] = income['Gross Profit']
-    df['Total Revenue'] = income['Total Revenue']
-    df['EBITDA'] = income['EBITDA']
-    df['EBIT'] = income['EBIT']
-    df['Shareholders Equity'] = balance['Common Stock Equity']
-    df['Total Assets'] = balance['Total Assets']
-    df['Total Liabilities'] = balance['Total Liabilities Net Minority Interest']
-    df = df.dropna()
-    df = df.apply(pd.to_numeric, errors='coerce').dropna()
-    df.index = df.index.year
-    df['ROE (%)'] = (df['Net Income'] / df['Shareholders Equity']) * 100
-    df['Gross Profit Margin (%)'] = (df['Gross Profit'] / df['Total Revenue']) * 100
-    df['Asset Turnover'] = df['Total Revenue'] / df['Total Assets']
-    df['Financial Leverage'] = df['Total Assets'] / df['Shareholders Equity']
-    df['Net Profit Margin (%)'] = (df['Net Income'] / df['Total Revenue']) * 100
-    st.subheader("📈 Interactive Financial Visuals")
-    st.plotly_chart(px.line(df, x=df.index, y="ROE (%)", markers=True, title="Return on Equity (%)", template="plotly_dark"), use_container_width=True)
-    st.plotly_chart(px.bar(df, x=df.index, y="Gross Profit Margin (%)", title="Gross Profit Margin (%)", template="plotly_dark"), use_container_width=True)
-    st.plotly_chart(px.area(df, x=df.index, y="Asset Turnover", title="Asset Turnover", template="plotly_dark"), use_container_width=True)
-    st.plotly_chart(px.scatter(df, x=df.index, y="Financial Leverage", size="Financial Leverage", title="Financial Leverage", template="plotly_dark"), use_container_width=True)
-    st.plotly_chart(px.bar(df, x=df.index.astype(str), y="Net Profit Margin (%)", title="Net Profit Margin (%)", template="plotly_dark"), use_container_width=True)
-    st.plotly_chart(px.line(df, x=df.index, y=["EBITDA", "EBIT"], markers=True, title="EBITDA vs EBIT", template="plotly_dark"), use_container_width=True)
-    latest_year = df.index.max()
-    roe_latest = df.loc[latest_year, 'ROE (%)']
-    gross_margin_latest = df.loc[latest_year, 'Gross Profit Margin (%)']
-    net_margin_latest = df.loc[latest_year, 'Net Profit Margin (%)']
-    asset_turnover_latest = df.loc[latest_year, 'Asset Turnover']
-    summary_text = ""
-    if roe_latest > 15:
-        summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n\n"
+    if income_df.empty or balance_df.empty:
+        st.warning("⚠️ Financial data not available for this ticker.")
+        if st.button("⬅️ Back to Main Menu", key="profit_back_empty", use_container_width=True):
+            go_app()
     else:
-        summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n\n"
-    if gross_margin_latest > 40:
-        summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n\n"
-    elif gross_margin_latest > 20:
-        summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n\n"
-    else:
-        summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n\n"
-    if net_margin_latest > 10:
-        summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n\n"
-    else:
-        summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n\n"
-    if asset_turnover_latest > 1:
-        summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n\n"
-    else:
-        summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n\n"
-    st.subheader("🔍 FinVAR Summary: Profitability Overview")
-    st.info(summary_text)
-    st.button("⬅️ Back", on_click=go_app)
+        df = pd.DataFrame()
+        df['Net Income'] = income_df.loc['netIncome']
+        df['Gross Profit'] = income_df.loc['grossProfit']
+        df['Revenue'] = income_df.loc['revenue']
+        df['EBITDA'] = income_df.loc['ebitda']
+        df['EBIT'] = income_df.loc['operatingIncome']
+        df['Equity'] = balance_df.loc['totalStockholdersEquity']
+        df['Assets'] = balance_df.loc['totalAssets']
+        df['Liabilities'] = balance_df.loc['totalLiabilities']
 
+        df = df.dropna().T
+        df.columns = df.columns.year
+        df = df.T
+        df = df.apply(pd.to_numeric, errors='coerce')
+
+        df['ROE (%)'] = (df['Net Income'] / df['Equity']) * 100
+        df['Gross Margin (%)'] = (df['Gross Profit'] / df['Revenue']) * 100
+        df['Net Margin (%)'] = (df['Net Income'] / df['Revenue']) * 100
+        df['Asset Turnover'] = df['Revenue'] / df['Assets']
+        df['Financial Leverage'] = df['Assets'] / df['Equity']
+
+        st.plotly_chart(px.line(df, x=df.index, y='ROE (%)', title='Return on Equity (%)', markers=True, template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.bar(df, x=df.index, y='Gross Margin (%)', title='Gross Profit Margin (%)', template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.line(df, x=df.index, y='Net Margin (%)', title='Net Profit Margin (%)', markers=True, template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.area(df, x=df.index, y='Asset Turnover', title='Asset Turnover', template='plotly_dark'), use_container_width=True)
+        st.plotly_chart(px.scatter(df, x=df.index, y='Financial Leverage', title='Financial Leverage', size='Financial Leverage', template='plotly_dark'), use_container_width=True)
+
+        latest_year = df.index.max()
+        roe_latest = df.loc[latest_year, 'ROE (%)']
+        gross_margin_latest = df.loc[latest_year, 'Gross Margin (%)']
+        net_margin_latest = df.loc[latest_year, 'Net Margin (%)']
+        asset_turnover_latest = df.loc[latest_year, 'Asset Turnover']
+        summary_text = ""
+        if roe_latest > 15:
+            summary_text += f"✅ Strong ROE of {roe_latest:.2f}% indicates efficient use of equity.\n"
+        else:
+            summary_text += f"⚠️ ROE of {roe_latest:.2f}% is below ideal; check company's return generation.\n"
+
+        if gross_margin_latest > 40:
+            summary_text += f"✅ Excellent Gross Margin ({gross_margin_latest:.2f}%) suggests strong pricing power.\n"
+        elif gross_margin_latest > 20:
+            summary_text += f"✅ Moderate Gross Margin ({gross_margin_latest:.2f}%), acceptable for most industries.\n"
+        else:
+            summary_text += f"⚠️ Weak Gross Margin ({gross_margin_latest:.2f}%) — may face margin pressure.\n"
+
+        if net_margin_latest > 10:
+            summary_text += f"✅ Net Profit Margin of {net_margin_latest:.2f}% is healthy.\n"
+        else:
+            summary_text += f"⚠️ Thin Net Profit Margin ({net_margin_latest:.2f}%) could be a concern.\n"
+
+        if asset_turnover_latest > 1:
+            summary_text += f"✅ High Asset Turnover ({asset_turnover_latest:.2f}) — efficient asset use.\n"
+        else:
+            summary_text += f"⚠️ Low Asset Turnover ({asset_turnover_latest:.2f}) — inefficient use of assets.\n"
+
+        st.subheader("🔍 FinVAR Summary: Profitability Overview")
+        st.info(summary_text)
+
+        st.write("")
+        st.write("")
+        if st.button("⬅️ Back to Main Menu", key="profit_back", use_container_width=True):
+            go_app()
+            
 elif st.session_state.page == "growth":
     st.subheader("📈 Expanded Growth Overview")
-    ticker = load_ticker(st.session_state.ticker)
-    income = ticker.financials
-    cashflow = ticker.cashflow
-
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    income_df, _, cashflow_df, _ = all_data['financials']
+    
     # Create Growth DataFrame
     growth_df = pd.DataFrame()
-    growth_df['Total Revenue'] = income.T.get('Total Revenue')
-    growth_df['EBITDA'] = income.T.get('EBITDA')
-    growth_df['Net Income'] = income.T.get('Net Income')
-    growth_df['Operating Cash Flow'] = cashflow.T.get('Operating Cash Flow')
+    growth_df['Total Revenue'] = income_df.loc['revenue'] if 'revenue' in income_df.index else None
+    growth_df['EBITDA'] = income_df.loc['ebitda'] if 'ebitda' in income_df.index else None
+    growth_df['Net Income'] = income_df.loc['netIncome'] if 'netIncome' in income_df.index else None
+    growth_df['Operating Cash Flow'] = cashflow_df.loc['operatingCashFlow'] if 'operatingCashFlow' in cashflow_df.index else None
 
     st.plotly_chart(
         px.line(
             growth_df,
-            x=growth_df.index.year,
+            x=growth_df.index,
             y=growth_df.columns,
             markers=True,
             title="Raw Financial Metrics Over Time",
@@ -212,10 +314,10 @@ elif st.session_state.page == "growth":
         prev_year = latest_years[0]
         latest_year = latest_years[1]
 
-        revenue_growth = ((growth_df.loc[latest_year, 'Total Revenue'] - growth_df.loc[prev_year, 'Total Revenue']) / growth_df.loc[prev_year, 'Total Revenue']) * 100
-        ebitda_growth = ((growth_df.loc[latest_year, 'EBITDA'] - growth_df.loc[prev_year, 'EBITDA']) / growth_df.loc[prev_year, 'EBITDA']) * 100
-        net_income_growth = ((growth_df.loc[latest_year, 'Net Income'] - growth_df.loc[prev_year, 'Net Income']) / growth_df.loc[prev_year, 'Net Income']) * 100
-        op_cashflow_growth = ((growth_df.loc[latest_year, 'Operating Cash Flow'] - growth_df.loc[prev_year, 'Operating Cash Flow']) / growth_df.loc[prev_year, 'Operating Cash Flow']) * 100
+        revenue_growth = ((growth_df.loc[latest_year, 'Total Revenue'] - growth_df.loc[prev_year, 'Total Revenue']) / growth_df.loc[prev_year, 'Total Revenue']) * 100 if 'Total Revenue' in growth_df.columns else None
+        ebitda_growth = ((growth_df.loc[latest_year, 'EBITDA'] - growth_df.loc[prev_year, 'EBITDA']) / growth_df.loc[prev_year, 'EBITDA']) * 100 if 'EBITDA' in growth_df.columns else None
+        net_income_growth = ((growth_df.loc[latest_year, 'Net Income'] - growth_df.loc[prev_year, 'Net Income']) / growth_df.loc[prev_year, 'Net Income']) * 100 if 'Net Income' in growth_df.columns else None
+        op_cashflow_growth = ((growth_df.loc[latest_year, 'Operating Cash Flow'] - growth_df.loc[prev_year, 'Operating Cash Flow']) / growth_df.loc[prev_year, 'Operating Cash Flow']) * 100 if 'Operating Cash Flow' in growth_df.columns else None
     else:
         revenue_growth = ebitda_growth = net_income_growth = op_cashflow_growth = None
 
@@ -256,136 +358,263 @@ elif st.session_state.page == "growth":
     st.subheader("🔍 FinVAR Summary: Growth Overview")
     st.info(summary_text)
 
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="growth_back", use_container_width=True):
+        go_app()
 
-elif st.session_state.page=="leverage":
+elif st.session_state.page == "leverage":
     st.subheader("⚡ Leverage Ratios Overview")
-    ticker = load_ticker(st.session_state.ticker)
-    balance = ticker.balance_sheet.T
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    balance_df = all_data['financials'][1]
+    
     leverage_df = pd.DataFrame()
-    leverage_df['Debt-to-Equity'] = balance['Total Liabilities Net Minority Interest'] / balance['Common Stock Equity']
-    leverage_df['Debt-to-Assets'] = balance['Total Liabilities Net Minority Interest'] / balance['Total Assets']
-    leverage_df.index = leverage_df.index.year
+    leverage_df['Debt-to-Equity'] = balance_df.loc['totalLiabilities'] / balance_df.loc['totalStockholdersEquity'] if ('totalLiabilities' in balance_df.index and 'totalStockholdersEquity' in balance_df.index) else None
+    leverage_df['Debt-to-Assets'] = balance_df.loc['totalLiabilities'] / balance_df.loc['totalAssets'] if ('totalLiabilities' in balance_df.index and 'totalAssets' in balance_df.index) else None
+    
     st.plotly_chart(px.bar(leverage_df, x=leverage_df.index, y=['Debt-to-Equity', 'Debt-to-Assets'], title="Leverage Ratios", template="plotly_dark"), use_container_width=True)
 
-    latest_year = leverage_df.index.max()
-    debt_equity = leverage_df.loc[latest_year, 'Debt-to-Equity']
-    debt_assets = leverage_df.loc[latest_year, 'Debt-to-Assets']
+    if not leverage_df.empty and not leverage_df['Debt-to-Equity'].isna().all() and not leverage_df['Debt-to-Assets'].isna().all():
+        latest_year = leverage_df.dropna().index.max()
+        debt_equity = leverage_df.loc[latest_year, 'Debt-to-Equity']
+        debt_assets = leverage_df.loc[latest_year, 'Debt-to-Assets']
 
-    summary_text = ""
-    if debt_equity < 1:
-        summary_text += f"✅ Healthy Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+        summary_text = ""
+        if debt_equity < 1:
+            summary_text += f"✅ Healthy Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+        else:
+            summary_text += f"⚠️ High Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+
+        if debt_assets < 0.5:
+            summary_text += f"✅ Low Debt-to-Assets Ratio: {debt_assets:.2f}\n\n"
+        else:
+            summary_text += f"⚠️ Higher Debt reliance: {debt_assets:.2f}\n\n"
+
+        st.subheader("🔍 FinVAR Summary: Leverage Overview")
+        st.info(summary_text)
     else:
-        summary_text += f"⚠️ High Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
+        st.warning("⚠️ Leverage data not available for this ticker.")
 
-    if debt_assets < 0.5:
-        summary_text += f"✅ Low Debt-to-Assets Ratio: {debt_assets:.2f}\n\n"
-    else:
-        summary_text += f"⚠️ Higher Debt reliance: {debt_assets:.2f}\n\n"
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="leverage_back", use_container_width=True):
+        go_app()
 
-    st.subheader("🔍 FinVAR Summary: Leverage Overview")
-    st.info(summary_text)
-
-    st.button("⬅️ Back", on_click=go_app)
-
-elif st.session_state.page=="liquidity":
+elif st.session_state.page == "liquidity":
     st.subheader("💧 Liquidity and Dividend Overview")
-    ticker = load_ticker(st.session_state.ticker)
-    balance = ticker.balance_sheet.T
-    cashflow = ticker.cashflow.T
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    balance_df, cashflow_df = all_data['financials'][1], all_data['financials'][2]
+    
     liquidity_df = pd.DataFrame()
-    liquidity_df['Current Ratio'] = balance['Current Assets'] / balance['Current Liabilities']
-    liquidity_df['FCF'] = cashflow['Operating Cash Flow'] - cashflow['Capital Expenditure']
-    liquidity_df.index = liquidity_df.index.year
+    liquidity_df['Current Ratio'] = balance_df.loc['totalCurrentAssets'] / balance_df.loc['totalCurrentLiabilities'] if ('totalCurrentAssets' in balance_df.index and 'totalCurrentLiabilities' in balance_df.index) else None
+    liquidity_df['FCF'] = cashflow_df.loc['operatingCashFlow'] - cashflow_df.loc['capitalExpenditure'] if ('operatingCashFlow' in cashflow_df.index and 'capitalExpenditure' in cashflow_df.index) else None
+    
     st.dataframe(liquidity_df)
     st.plotly_chart(px.line(liquidity_df, x=liquidity_df.index, y=['Current Ratio', 'FCF'], markers=True, title="Liquidity & FCF Trends", template="plotly_dark"), use_container_width=True)
 
-    latest_year = liquidity_df.index.max()
-    current_ratio = liquidity_df.loc[latest_year, 'Current Ratio']
-    fcf = liquidity_df.loc[latest_year, 'FCF']
+    if not liquidity_df.empty and not liquidity_df['Current Ratio'].isna().all() and not liquidity_df['FCF'].isna().all():
+        latest_year = liquidity_df.dropna().index.max()
+        current_ratio = liquidity_df.loc[latest_year, 'Current Ratio']
+        fcf = liquidity_df.loc[latest_year, 'FCF']
 
-    summary_text = ""
-    if current_ratio >= 1.5:
-        summary_text += f"✅ Strong Current Ratio: {current_ratio:.2f}\n\n"
+        summary_text = ""
+        if current_ratio >= 1.5:
+            summary_text += f"✅ Strong Current Ratio: {current_ratio:.2f}\n\n"
+        else:
+            summary_text += f"⚠️ Low Current Ratio: {current_ratio:.2f}\n\n"
+
+        if fcf > 0:
+            summary_text += f"✅ Positive Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+        else:
+            summary_text += f"⚠️ Negative Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+
+        st.subheader("🔍 FinVAR Summary: Liquidity & Dividend Overview")
+        st.info(summary_text)
     else:
-        summary_text += f"⚠️ Low Current Ratio: {current_ratio:.2f}\n\n"
+        st.warning("⚠️ Liquidity data not available for this ticker.")
 
-    if fcf > 0:
-        summary_text += f"✅ Positive Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
-    else:
-        summary_text += f"⚠️ Negative Free Cash Flow (FCF): {fcf/1e6:.2f}M\n\n"
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="liquidity_back", use_container_width=True):
+        go_app()
 
-    st.subheader("🔍 FinVAR Summary: Liquidity & Dividend Overview")
-    st.info(summary_text)
-
-    st.button("⬅️ Back", on_click=go_app)
-
-elif st.session_state.page=="volatility":
+elif st.session_state.page == "volatility":
     st.subheader("📈 Stock Price & Volatility Overview")
-    ticker = load_ticker(st.session_state.ticker)
-    hist = ticker.history(period="1y")
-    if not hist.empty:
-        hist['Daily Return'] = hist['Close'].pct_change()
-        volatility = hist['Daily Return'].std() * np.sqrt(252)
-        st.line_chart(hist['Close'])
-        st.subheader(f"Annualized Volatility: {volatility:.2%}")
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    history_df = all_data['financials'][3]
+    
+    if history_df.empty:
+        st.warning("⚠️ Historical price data not available for this ticker.")
     else:
-        st.warning("No historical data available.")
+        # Calculate daily returns
+        history_df['Daily Return'] = history_df['close'].pct_change()
+        
+        # Calculate annualized volatility (252 trading days per year)
+        volatility = history_df['Daily Return'].std() * np.sqrt(252)
+        
+        # Display stock price chart
+        st.subheader("Price History")
+        fig = px.line(
+            history_df, 
+            y='close',
+            title=f"{st.session_state.ticker} Price History",
+            template="plotly_dark"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Display volatility metrics
+        st.subheader(f"Annualized Volatility: {volatility:.2%}")
+        
+        # Show additional metrics in columns
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            recent_close = history_df['close'].iloc[-1]
+            st.metric("Latest Close", f"${recent_close:.2f}")
+        with col2:
+            year_high = history_df['high'].max()
+            st.metric("52-Week High", f"${year_high:.2f}")
+        with col3:
+            year_low = history_df['low'].min()
+            st.metric("52-Week Low", f"${year_low:.2f}")
+            
+        # Add daily returns histogram
+        st.subheader("Daily Returns Distribution")
+        fig_hist = px.histogram(
+            history_df, 
+            x='Daily Return',
+            nbins=50,
+            title="Distribution of Daily Returns",
+            template="plotly_dark"
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+        
+        # Summary text
+        summary_text = ""
+        if volatility > 0.4:
+            summary_text += f"⚠️ High volatility ({volatility:.2%}): This stock shows significant price swings, indicating higher risk.\n\n"
+        elif volatility > 0.2:
+            summary_text += f"⚠️ Moderate volatility ({volatility:.2%}): This stock shows average market volatility.\n\n"
+        else:
+            summary_text += f"✅ Low volatility ({volatility:.2%}): This stock shows relatively stable price action.\n\n"
+            
+        # Add price trend information
+        returns_30d = (history_df['close'].iloc[-1] / history_df['close'].iloc[-min(30, len(history_df))]) - 1
+        if returns_30d > 0.05:
+            summary_text += f"✅ Strong recent uptrend: {returns_30d:.2%} over the last month.\n\n"
+        elif returns_30d < -0.05:
+            summary_text += f"⚠️ Significant recent downtrend: {returns_30d:.2%} over the last month.\n\n"
+        else:
+            summary_text += f"⚠️ Sideways price action: {returns_30d:.2%} over the last month.\n\n"
+        
+        st.subheader("🔍 FinVAR Summary: Volatility Analysis")
+        st.info(summary_text)
 
-    st.button("⬅️ Back", on_click=go_app)
+    st.write("")
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="volatility_back", use_container_width=True):
+        go_app()
 
-elif st.session_state.page=="eps_prediction":
+elif st.session_state.page == "eps_prediction":
     st.subheader("🔮 EPS Prediction for 2025")
-    ticker = load_ticker(st.session_state.ticker)
+    all_data = get_all_ticker_data(st.session_state.ticker)
+    info = all_data['info']
+    income_df, balance_df, cashflow_df, _ = all_data['financials']
+    
     try:
-        income = ticker.financials
-        balance = ticker.balance_sheet
-        cashflow = ticker.cashflow
-        info = ticker.info
+        if income_df.empty or balance_df.empty or cashflow_df.empty:
+            raise ValueError("Financial data not available")
 
-        income = income.T
-        balance = balance.T
-        cashflow = cashflow.T
+        latest_year = income_df.columns.max()
+        prev_year = income_df.columns[-2] if len(income_df.columns) > 1 else None
 
-        latest_year = income.index.max().year
-
-
-        pe_exi = info.get('trailingPE', np.nan)
-        npm = income.loc[income.index[-1], 'Net Income'] / income.loc[income.index[-1], 'Total Revenue']
-        opmad = income.loc[income.index[-1], 'Operating Income'] / income.loc[income.index[-1], 'Total Revenue']
-        roa = income.loc[income.index[-1], 'Net Income'] / balance.loc[balance.index[-1], 'Total Assets']
-        roe = income.loc[income.index[-1], 'Net Income'] / balance.loc[balance.index[-1], 'Common Stock Equity']
-        de_ratio = balance.loc[balance.index[-1], 'Total Liabilities Net Minority Interest'] / balance.loc[balance.index[-1], 'Common Stock Equity']
-        intcov_ratio = income.loc[income.index[-1], 'EBIT'] / income.loc[income.index[-1], 'Interest Expense']
-        curr_ratio = balance.loc[balance.index[-1], 'Current Assets'] / balance.loc[balance.index[-1], 'Current Liabilities']
-        revenue = income.loc[income.index[-1], 'Total Revenue']
-        eps = info.get('epsTrailingTwelveMonths', np.nan)
-
-
-        previous_revenue = income.loc[income.index[-2], 'Total Revenue'] if len(income.index) > 1 else np.nan
-        previous_eps = info.get('epsTrailingTwelveMonths', np.nan) # fallback if past EPS not available
-
+        # Extract raw values using .loc[row, col]
+        eps = info.get('epsTrailingTwelveMonths', 0)
+        revenue = income_df.loc['revenue', latest_year] if 'revenue' in income_df.index else 0
+        previous_revenue = income_df.loc['revenue', prev_year] if prev_year and 'revenue' in income_df.index else 0
         revenue_growth = ((revenue - previous_revenue) / previous_revenue) if previous_revenue else 0
-        eps_growth = 0
 
-        roa_to_revenue = roa / revenue if revenue != 0 else 0
-        roe_to_roa = roe / roa if roa != 0 else 0
-        debt_to_income = de_ratio / revenue if revenue != 0 else 0
-        intcov_per_curr = intcov_ratio / curr_ratio if curr_ratio != 0 else 0
-        opmad_to_npm = opmad / npm if npm != 0 else 0
+        net_income = income_df.loc['netIncome', latest_year] if 'netIncome' in income_df.index else 0
+        operating_income = income_df.loc['operatingIncome', latest_year] if 'operatingIncome' in income_df.index else 0
+        interest_expense = income_df.loc['interestExpense', latest_year] if 'interestExpense' in income_df.index else 0
 
-        eps_3yr_avg = eps
-        revenue_3yr_avg = revenue
+        total_assets = balance_df.loc['totalAssets', latest_year] if 'totalAssets' in balance_df.index else 0
+        total_equity = balance_df.loc['totalStockholdersEquity', latest_year] if 'totalStockholdersEquity' in balance_df.index else 0
+        total_liabilities = balance_df.loc['totalLiabilities', latest_year] if 'totalLiabilities' in balance_df.index else 0
+        current_assets = balance_df.loc['totalCurrentAssets', latest_year] if 'totalCurrentAssets' in balance_df.index else 0
+        current_liabilities = balance_df.loc['totalCurrentLiabilities', latest_year] if 'totalCurrentLiabilities' in balance_df.index else 0
 
-        features = np.array([[ eps, eps_3yr_avg, roe, npm, opmad_to_npm,revenue_3yr_avg, intcov_per_curr, revenue_growth,roa_to_revenue, intcov_ratio]])
+        # Convert scale if needed
+        eps = eps / 1e6 if eps > 1000 else eps
+        revenue = revenue / 1e6 if revenue > 1e7 else revenue
+        revenue_3yr_avg = revenue  # Placeholder for now
 
+        # Ratios
+        npm = (net_income / revenue) if revenue else 0
+        opmad = (operating_income / revenue) if revenue else 0
+        roa = (net_income / total_assets) if total_assets else 0
+        roe = (net_income / total_equity) if total_equity else 0
+        de_ratio = (total_liabilities / total_equity) if total_equity else 0
+        intcov_ratio = (operating_income / interest_expense) if interest_expense else 0
+        curr_ratio = (current_assets / current_liabilities) if current_liabilities else 0
+        roa_to_revenue = (roa / revenue) if revenue else 0
+        opmad_to_npm = (opmad / npm) if npm else 0
+        intcov_per_curr = (intcov_ratio / curr_ratio) if curr_ratio else 0
 
-        features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
+        # Clip to WRDS-style ranges
+        npm = np.clip(npm, -1, 1)
+        opmad_to_npm = np.clip(opmad_to_npm, -2, 2)
+        roa = np.clip(roa, -1, 1)
+        roe = np.clip(roe, -2, 2)
+        de_ratio = np.clip(de_ratio, 0, 10)
+        intcov_ratio = np.clip(intcov_ratio, 0, 100)
+        curr_ratio = np.clip(curr_ratio, 0, 10)
+        intcov_per_curr = np.clip(intcov_per_curr, 0, 100)
+        roa_to_revenue = np.clip(roa_to_revenue, -1, 1)
+        revenue_growth = np.clip(revenue_growth, -1, 1)
+
+        # Final features
+        features = np.array([[
+            eps, eps, roe, npm, opmad_to_npm,
+            revenue_3yr_avg, intcov_per_curr, revenue_growth,
+            roa_to_revenue, intcov_ratio
+        ]])
+        features = np.nan_to_num(features)
 
         predicted_eps = model.predict(features)[0]
+        st.success(f"🧠 Predicted EPS for 2025: **${predicted_eps:.2f}**")
 
-        st.success(f"🧠 Predicted EPS for 2025: **{predicted_eps:.2f} USD**")
+        if eps > 0:
+            eps_growth_pct = ((predicted_eps - eps) / eps) * 100
+            col1, col2 = st.columns(2)
+            col1.metric("Current EPS", f"${eps:.2f}")
+            col2.metric("Projected Growth", f"{eps_growth_pct:+.2f}%")
 
-        st.button("⬅️ Back", on_click=go_app)
+            eps_data = pd.DataFrame({
+                'Year': ['Current', '2025 (Predicted)'],
+                'EPS': [eps, predicted_eps]
+            })
+            st.plotly_chart(px.bar(eps_data, x='Year', y='EPS', template='plotly_dark', color='Year'), use_container_width=True)
+
+            st.info("""
+            **Prediction Notes:**
+            - Prediction scaled to WRDS-trained model expectations.
+            - Ratios and features have been range-corrected to reduce bias.
+            - Real outcomes can vary due to macro and company-specific shifts.
+            """)
+
     except Exception as e:
-        st.error(f"Error in prediction:{e}")
+        st.error(f"Prediction error: {str(e)}")
+        st.info("""
+        **Prediction Not Available**
+
+        This could be due to:
+        - Missing financial metrics
+        - Division by zero
+        - API data inconsistencies
+
+        Try another ticker with more complete records.
+        """)
+
+    st.write("")
+    if st.button("⬅️ Back to Main Menu", key="eps_back", use_container_width=True):
+        go_app()
