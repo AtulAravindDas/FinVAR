@@ -1,11 +1,10 @@
-import finnhub
+import yfinance as yf
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import joblib
 import sklearn
-import requests
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 model=joblib.load("final_eps_predictor.pkl")
@@ -25,22 +24,18 @@ def fresh_start():
     st.session_state.ticker = ''
     st.session_state.page = 'fresh'
 
-import time
-import random
-
 @st.cache_resource
 def load_ticker(ticker_symbol):
     return yf.Ticker(ticker_symbol)
 
-        
 if st.session_state.page == 'home':
     st.image("FinVAR.png",width=300)
     st.title("📊 FinVAR – Financial Assistant Referee")
     st.markdown("""
     Your financial assistant referee – reviewing every ticker, flagging every risk.
 
-    🧠 **Understand the market.**  
-    🚨 **Flag the risks.**  
+    🧠 **Understand the market.**
+    🚨 **Flag the risks.**
     💼 **Make smarter investment moves.**
     ---
     ## 🚀 What is FinVAR?
@@ -56,47 +51,24 @@ if st.session_state.page == 'home':
     - **EPS Prediction Engine:** Trained ML model forecasts future EPS based on real-time financials.
     ---
     Click the button below to start!""")
-    
-   
+
+
     st.button("🚀 Enter FinVAR App", on_click=go_app)
 elif st.session_state.page == 'app':
     st.title("🔍 FinVAR – Start Analysis")
     st.session_state.ticker = st.text_input("Enter a Stock Ticker (e.g., AAPL, MSFT):", value=st.session_state.ticker)
 
     if st.session_state.ticker:
-        ticker_symbol = st.session_state.ticker
-        ticker = load_ticker(ticker_symbol)
-        if 'info' not in st.session_state or st.session_state.info.get('symbol', '') != ticker_symbol:
-            try:
-                info = ticker.info  # 🔥 One and only API call
-                if not info or 'longName' not in info:
-                    st.session_state.info = {"error": "invalid_or_empty"}
-                else:
-                    st.session_state.info = info
-            except Exception as e:
-                error_text = str(e)
-                if "429" in error_text:
-                    st.session_state.info = {"error": "rate_limit"}
-                else:
-                    st.session_state.info = {"error": error_text}
+        ticker = yf.Ticker(st.session_state.ticker)
+        info = ticker.info
 
-        info = st.session_state.info
+        if not info or 'longName' not in info:
+            st.error("❌ Invalid ticker. Please try again.")
+        else:
+            company_name = info.get('longName', 'N/A')
+            st.success(f"Company: {company_name}")
 
-        # Handle errors cleanly
-        if "error" in info:
-            error_msg = info["error"]
-            if "rate_limit" in error_msg:
-                st.error("⚠️ Yahoo Finance rate limit reached. Please wait a few minutes and try again.")
-            elif "invalid_or_empty" in error_msg:
-                st.error("❌ Invalid or empty ticker. Please try another.")
-            else:
-                st.error(f"⚠️ Unexpected error: {error_msg}")
-            st.stop()
-        
-        company_name = info.get('longName', 'N/A')
-        st.success(f"Company: {company_name}")
-
-        st.subheader("📂 Select an Analysis Section:")
+            st.subheader("📂 Select an Analysis Section:")
 
         if st.button("📝 Show Description"):
             set_page('description')
@@ -125,35 +97,28 @@ elif st.session_state.page == 'fresh':
 
 elif st.session_state.page == 'description':
     st.title("📝 Company Description")
-    info = st.session_state.info
-    if "error" in info:
-        st.error("⚠️ Unable to fetch company description. Rate limit or error occurred.")
-        st.stop()
-    description = info.get('longBusinessSummary', 'N/A')
+    ticker = yf.Ticker(st.session_state.ticker)
+    description = ticker.info.get('longBusinessSummary', 'N/A')
     st.write(description)
     st.button("⬅️ Back", on_click=go_app)
 
 elif st.session_state.page == 'price':
-    st.subheader("💰 Current Price (Fast Info)")
-
-    ticker = load_ticker(st.session_state.ticker)
-    fast_info = ticker.fast_info
-
-    price = fast_info.get('last_price', None)
-    prev_close = fast_info.get('previous_close', None)
-
-    if price is not None and prev_close is not None:
+    st.subheader("💰 Current Price")
+    ticker = yf.Ticker(st.session_state.ticker)
+    price = ticker.info.get('currentPrice', 'N/A')
+    prev_close = ticker.info.get('previousClose', 'N/A')
+    if price != 'N/A' and prev_close != 'N/A':
         change = price - prev_close
         pct_change = (change / prev_close) * 100
         st.metric("Current Price (USD)", f"${price:.2f}", f"{pct_change:+.2f}%")
     else:
-        st.warning("⚠️ Price data unavailable or rate-limited.")
-
+        st.warning("Price data unavailable.")
     st.button("⬅️ Back", on_click=go_app)
 
 elif st.session_state.page == 'profitability':
     st.subheader("📘 Profitability Ratios Overview")
     ticker = load_ticker(st.session_state.ticker)
+
     income = ticker.financials
     balance = ticker.balance_sheet
     ideal_income_order = ["Total Revenue", "Gross Profit", "EBITDA", "EBIT", "Net Income"]
@@ -239,7 +204,7 @@ elif st.session_state.page == "growth":
         use_container_width=True
     )
 
-    latest_years = growth_df.dropna().index.sort_values()[-2:]  
+    latest_years = growth_df.dropna().index.sort_values()[-2:]
 
     if len(latest_years) == 2:
         prev_year = latest_years[0]
@@ -304,7 +269,7 @@ elif st.session_state.page=="leverage":
     latest_year = leverage_df.index.max()
     debt_equity = leverage_df.loc[latest_year, 'Debt-to-Equity']
     debt_assets = leverage_df.loc[latest_year, 'Debt-to-Assets']
-    
+
     summary_text = ""
     if debt_equity < 1:
         summary_text += f"✅ Healthy Debt-to-Equity Ratio: {debt_equity:.2f}\n\n"
@@ -320,7 +285,7 @@ elif st.session_state.page=="leverage":
     st.info(summary_text)
 
     st.button("⬅️ Back", on_click=go_app)
-    
+
 elif st.session_state.page=="liquidity":
     st.subheader("💧 Liquidity and Dividend Overview")
     ticker = load_ticker(st.session_state.ticker)
@@ -369,17 +334,12 @@ elif st.session_state.page=="volatility":
 
 elif st.session_state.page=="eps_prediction":
     st.subheader("🔮 EPS Prediction for 2025")
-    ticker_symbol = st.session_state.ticker
-    ticker = load_ticker(ticker_symbol)
-    info = st.session_state.info
+    ticker = load_ticker(st.session_state.ticker)
     try:
         income = ticker.financials
         balance = ticker.balance_sheet
         cashflow = ticker.cashflow
-        if "error" in info:
-            st.error(f"❌ EPS prediction failed: {info['error']}")
-            st.button("⬅️ Back", on_click=go_app)
-            st.stop()
+        info = ticker.info
 
         income = income.T
         balance = balance.T
@@ -399,21 +359,21 @@ elif st.session_state.page=="eps_prediction":
         revenue = income.loc[income.index[-1], 'Total Revenue']
         eps = info.get('epsTrailingTwelveMonths', np.nan)
 
-        
+
         previous_revenue = income.loc[income.index[-2], 'Total Revenue'] if len(income.index) > 1 else np.nan
         previous_eps = info.get('epsTrailingTwelveMonths', np.nan) # fallback if past EPS not available
 
         revenue_growth = ((revenue - previous_revenue) / previous_revenue) if previous_revenue else 0
-        eps_growth = 0  
-        
+        eps_growth = 0
+
         roa_to_revenue = roa / revenue if revenue != 0 else 0
         roe_to_roa = roe / roa if roa != 0 else 0
         debt_to_income = de_ratio / revenue if revenue != 0 else 0
         intcov_per_curr = intcov_ratio / curr_ratio if curr_ratio != 0 else 0
         opmad_to_npm = opmad / npm if npm != 0 else 0
 
-        eps_3yr_avg = eps  
-        revenue_3yr_avg = revenue  
+        eps_3yr_avg = eps
+        revenue_3yr_avg = revenue
 
         features = np.array([[ eps, eps_3yr_avg, roe, npm, opmad_to_npm,revenue_3yr_avg, intcov_per_curr, revenue_growth,roa_to_revenue, intcov_ratio]])
 
@@ -427,4 +387,3 @@ elif st.session_state.page=="eps_prediction":
         st.button("⬅️ Back", on_click=go_app)
     except Exception as e:
         st.error(f"Error in prediction:{e}")
-        
