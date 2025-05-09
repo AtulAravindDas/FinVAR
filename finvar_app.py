@@ -82,6 +82,14 @@ def get_all_ticker_data(ticker_symbol):
 
 st.set_page_config(page_title="FinVAR", layout="centered")
 
+def safe_extract(df, item, year):
+    try:
+        return df.loc[item, year] if item in df.index else np.nan
+    except:
+        return np.nan
+def safe_div(numerator, denominator):
+    return numerator / denominator if denominator not in [0, np.nan] else np.nan
+       
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
 if 'ticker' not in st.session_state:
@@ -126,9 +134,11 @@ if st.session_state.page == 'home':
     if st.button("🚀 Enter FinVAR App", key="enter_app"):
         go_app()
 elif st.session_state.page == 'fresh':
+    # This is the added 'fresh' page state handler
     st.title("🧹 Fresh Start")
     st.success("Your previous analysis has been cleared. You can start a new analysis.")
     
+    # Display options to navigate
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🏠 Return to Home", key="fresh_home", use_container_width=True):
@@ -168,6 +178,8 @@ elif st.session_state.page == 'app':
                     set_page('leverage')
                 if st.button("📉 Stock Price & Volatility", key="btn_volatility", use_container_width=True):
                     set_page('volatility')
+                if st.button("🔢Beneish M-score",key="btn_beneish",use_container_width=True):
+                    set_page("beneish_m_score")
             with col2:
                 if st.button("💰 Current Price", key="btn_price", use_container_width=True):
                     set_page('price')
@@ -608,5 +620,52 @@ elif st.session_state.page == "eps_prediction":
         """)
 
     st.write("")
+elif st.session_state.page=="beneish_m_score":
+    st.subheader("🔢Beneish-M-Score Overview")
+    all_data=get_all_ticker_data(st.session_state.ticker)
+    income_df, balance_df, cashflow_df, history_df=all_data['financials']
+    if income_df.empty or balance_df.empty or cashflow_df.empty:
+        st.warning("Insufficient data to calculate the M-score")
+        st.stop
+    years=income_df.columns.sort_values()
+    if len(years)<2:
+        st.warning("⚠️ Not enough historical data to compute Beneish M-Score.")
+        st.stop()
+    latest_year = years[-1]
+    previous_year = years[-2]
+    metrics = {}
+    for year_label, year in [('current', latest_year), ('previous', previous_year)]:
+        metrics[year_label] = {
+            'receivables': safe_extract(balance_df, 'netReceivables', year),
+            'sales': safe_extract(income_df, 'revenue', year),
+            'cogs': safe_extract(income_df, 'costOfRevenue', year),
+            'current_assets': safe_extract(balance_df, 'totalCurrentAssets', year),
+            'ppe': safe_extract(balance_df, 'propertyPlantEquipmentNet', year),
+            'securities': safe_extract(balance_df, 'shortTermInvestments', year),
+            'total_assets': safe_extract(balance_df, 'totalAssets', year),
+            'depreciation': safe_extract(cashflow_df, 'depreciationAndAmortization', year),
+            'sga': safe_extract(income_df, 'sellingGeneralAndAdministrativeExpenses', year),
+            'total_debt': safe_extract(balance_df, 'totalDebt', year),
+            'net_income': safe_extract(income_df, 'netIncome', year),
+            'op_cash_flow': safe_extract(cashflow_df, 'operatingCashFlow', year)
+        }
+    dsri = safe_div(metrics['current']['receivables'], metrics['current']['sales']) / safe_div(metrics['previous']['receivables'], metrics['previous']['sales'])
+    gmi = safe_div(metrics['previous']['sales'] - metrics['previous']['cogs'], metrics['previous']['sales']) / safe_div(metrics['current']['sales'] - metrics['current']['cogs'], metrics['current']['sales'])
+    aqi = (1 - safe_div(metrics['current']['current_assets'] + metrics['current']['ppe'] + metrics['current']['securities'], metrics['current']['total_assets'])) / (1 - safe_div(metrics['previous']['current_assets'] + metrics['previous']['ppe'] + metrics['previous']['securities'], metrics['previous']['total_assets']))
+    sgi = safe_div(metrics['current']['sales'], metrics['previous']['sales'])
+    depi = safe_div(metrics['previous']['depreciation'], metrics['previous']['depreciation'] + metrics['previous']['ppe']) / safe_div(metrics['current']['depreciation'], metrics['current']['depreciation'] + metrics['current']['ppe'])
+    sgai = safe_div(metrics['current']['sga'], metrics['current']['sales']) / safe_div(metrics['previous']['sga'], metrics['previous']['sales'])
+    lvgi = safe_div(metrics['current']['total_debt'], metrics['current']['total_assets']) / safe_div(metrics['previous']['total_debt'], metrics['previous']['total_assets'])
+    tata = safe_div(metrics['current']['net_income'] - metrics['current']['op_cash_flow'], metrics['current']['total_assets'])
+
+    m_score = (-4.84 + 0.920 * dsri + 0.528 * gmi + 0.404 * aqi + 0.892 * sgi + 0.115 * depi - 0.172 * sgai + 4.679 * tata - 0.327 * lvgi)
+    st.subheader("🧠 Beneish M-Score Result")
+    st.write(f"**M-Score: {m_score:.2f}**")
+    
+    if m_score > -2.22:
+        st.error("🚩 The company is **likely a manipulator** (M-Score > -2.22)")
+    else:
+        st.success("✅ The company is **not likely a manipulator** (M-Score ≤ -2.22)")
+        
     if st.button("⬅️ Back to Main Menu", key="eps_back", use_container_width=True):
         go_app()
