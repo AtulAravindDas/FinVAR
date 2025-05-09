@@ -129,6 +129,7 @@ if st.session_state.page == 'home':
     - **Leverage and Liquidity Overview:** Debt Ratios and Free Cash Flow.
     - **Stock Price and Volatility Analysis:** 1-year trend analysis and volatility.
     - **EPS Prediction Engine:** Trained ML model forecasts future EPS based on real-time financials.
+    - **Beneish M-Score:Sniff out accounting manipulation before the market does.**
     ---
     Click the button below to start!""")
     if st.button("🚀 Enter FinVAR App", key="enter_app"):
