@@ -21,7 +21,7 @@ Your financial assistant referee – reviewing every ticker, flagging every risk
 ## 📈 Key Features
 
 - **Company Insights**  
-  - Fetch and display real-time company descriptions and financials via Yahoo Finance API.
+  - Fetch and display real-time company descriptions and financials via FinancialModelingPrep API.
 
 - **Profitability Overview**  
   - ROE, Gross Profit Margin, Net Profit Margin, Asset Turnover, Financial Leverage.
