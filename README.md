@@ -49,7 +49,7 @@ Your financial assistant referee – reviewing every ticker, flagging every risk
 - Streamlit
 - Scikit-learn
 - Plotly
-- Yahoo Finance API (via `yfinance`)
+- FinancialModelingPrep API
 
 ---
 
