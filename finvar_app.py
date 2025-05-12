@@ -621,6 +621,8 @@ elif st.session_state.page == "eps_prediction":
         """)
 
     st.write("")
+    if st.button("⬅️ Back to Main Menu", key="eps_back", use_container_width=True):
+        go_app()
 elif st.session_state.page=="beneish_m_score":
     st.subheader("🔢Beneish-M-Score Overview")
     all_data=get_all_ticker_data(st.session_state.ticker)
