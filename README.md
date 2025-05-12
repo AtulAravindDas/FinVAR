@@ -38,7 +38,9 @@ Your financial assistant referee – reviewing every ticker, flagging every risk
 - **📈 EPS Prediction Engine**  
   - Trained using Gradient Boosting on historical financial ratios.
   - Auto-fetches latest ratios and predicts **future EPS** without manual data entry.
-
+- **🔢 Beneish-M-Score**
+  - Leverages forensic accounting ratios to flag potential earnings manipulation.
+  - Helps investors sniff out financial red flags before the market reacts.
 ---
 
 ## 🛠️ Tech Stack
