@@ -584,6 +584,7 @@ elif st.session_state.page == "eps_prediction":
                 'Year': ['Current', '2025 (Predicted)'],
                 'EPS': [eps, predicted_eps]
             })
+            st.write(eps_data)
             st.plotly_chart(px.bar(eps_data, x='Year', y='EPS', template='plotly_dark', color='Year'), use_container_width=True)
 
             st.info("""
@@ -592,6 +593,8 @@ elif st.session_state.page == "eps_prediction":
             - Ratios and features have been range-corrected to reduce bias.
             - Real outcomes can vary due to macro and company-specific shifts.
             """)
+        if st.button("⬅️ Back to Main Menu", key="leverage_back", use_container_width=True):
+                go_app()
 
     except Exception as e:
         st.error(f"Prediction error: {str(e)}")
