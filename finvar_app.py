@@ -187,7 +187,7 @@ elif st.session_state.page == 'app':
                     set_page('liquidity')
                 if st.button("🔮 Predict Next Year EPS", key="btn_eps", use_container_width=True):
                     set_page('eps_prediction')
-                if st.button("Beneish M-score",key="btn_beneish",use_container_width=True):
+                if st.button("🔢Beneish M-score",key="btn_beneish",use_container_width=True):
                     set_page("beneish_m_score")
             
             if st.button("🧹 Fresh Start", key="btn_fresh", use_container_width=True):
@@ -611,7 +611,7 @@ elif st.session_state.page == "eps_prediction":
 
     st.write("")
 elif st.session_state.page=="beneish_m_score":
-    st.subheader("Beneish-M-Score Overview")
+    st.subheader("🔢Beneish-M-Score Overview")
     all_data=get_all_ticker_data(st.session_state.ticker)
     income_df, balance_df, cashflow_df, history_df=all_data['financials']
     if income_df.empty or balance_df.empty or cashflow_df.empty:
