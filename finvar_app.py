@@ -182,14 +182,14 @@ elif st.session_state.page == 'app':
                 if st.button("🔢Beneish M-score",key="btn_beneish",use_container_width=True):
                     set_page("beneish_m_score")
             with col2:
-                if st.button("💰 Current Price", key="btn_price", use_container_width=True):
-                    set_page('price')
                 if st.button("📈 Growth Overview", key="btn_growth", use_container_width=True):
                     set_page('growth')
                 if st.button("💧 Liquidity & Dividend", key="btn_liquidity", use_container_width=True):
                     set_page('liquidity')
                 if st.button("🔮 Predict Next Year EPS", key="btn_eps", use_container_width=True):
                     set_page('eps_prediction')
+                if st.button("🔢Beneish M-score",key="btn_beneish",use_container_width=True):
+                    set_page("beneish_m_score")
             
             if st.button("🧹 Fresh Start", key="btn_fresh", use_container_width=True):
                 fresh_start()
