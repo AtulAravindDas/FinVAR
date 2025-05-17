@@ -179,8 +179,7 @@ elif st.session_state.page == 'app':
                     set_page('leverage')
                 if st.button("📉 Stock Price & Volatility", key="btn_volatility", use_container_width=True):
                     set_page('volatility')
-                if st.button("🔢Beneish M-score",key="btn_beneish",use_container_width=True):
-                    set_page("beneish_m_score")
+                
             with col2:
                 if st.button("📈 Growth Overview", key="btn_growth", use_container_width=True):
                     set_page('growth')
@@ -188,7 +187,7 @@ elif st.session_state.page == 'app':
                     set_page('liquidity')
                 if st.button("🔮 Predict Next Year EPS", key="btn_eps", use_container_width=True):
                     set_page('eps_prediction')
-                if st.button("🔢Beneish M-score",key="btn_beneish",use_container_width=True):
+                if st.button("Beneish M-score",key="btn_beneish",use_container_width=True):
                     set_page("beneish_m_score")
             
             if st.button("🧹 Fresh Start", key="btn_fresh", use_container_width=True):
@@ -205,23 +204,6 @@ elif st.session_state.page == 'description':
     st.write("")
     st.write("")
     if st.button("⬅️ Back to Main Menu", key="desc_back", use_container_width=True):
-        go_app()
-  
-elif st.session_state.page == 'price':
-    st.title("💰 Current Stock Price")
-    all_data = get_all_ticker_data(st.session_state.ticker)
-    info = all_data['info']
-    if 'error' in info:
-        st.error("⚠️ Unable to fetch price data. API issue.")
-    elif info['currentPrice'] is not None and info['previousClose'] is not None:
-        change = info['currentPrice'] - info['previousClose']
-        pct_change = (change / info['previousClose']) * 100
-        st.metric("Current Price (USD)", f"${info['currentPrice']:.2f}", f"{pct_change:+.2f}%")
-    else:
-        st.warning("Price data not available.")
-    st.write("")
-    st.write("")
-    if st.button("⬅️ Back to Main Menu", key="price_back", use_container_width=True):
         go_app()
 
 elif st.session_state.page == 'profitability':
@@ -255,10 +237,14 @@ elif st.session_state.page == 'profitability':
         df['Asset Turnover'] = df['Revenue'] / df['Assets']
         df['Financial Leverage'] = df['Assets'] / df['Equity']
 
-        st.plotly_chart(px.line(df, x=df.index, y='ROE (%)', title='Return on Equity (%)', markers=True, template='plotly_dark'), use_container_width=True)
-        st.plotly_chart(px.bar(df, x=df.index, y='Gross Margin (%)', title='Gross Profit Margin (%)', template='plotly_dark'), use_container_width=True)
-        st.plotly_chart(px.line(df, x=df.index, y='Net Margin (%)', title='Net Profit Margin (%)', markers=True, template='plotly_dark'), use_container_width=True)
-        st.plotly_chart(px.area(df, x=df.index, y='Asset Turnover', title='Asset Turnover', template='plotly_dark'), use_container_width=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.plotly_chart(px.line(df, x=df.index, y='ROE (%)', title='Return on Equity (%)', markers=True, template='plotly_dark'), use_container_width=True)
+            st.plotly_chart(px.bar(df, x=df.index, y='Gross Margin (%)', title='Gross Profit Margin (%)', template='plotly_dark'), use_container_width=True)
+        with col2:
+            st.plotly_chart(px.line(df, x=df.index, y='Net Margin (%)', title='Net Profit Margin (%)', markers=True, template='plotly_dark'), use_container_width=True)
+            st.plotly_chart(px.area(df, x=df.index, y='Asset Turnover', title='Asset Turnover', template='plotly_dark'), use_container_width=True)
+        
         st.plotly_chart(px.scatter(df, x=df.index, y='Financial Leverage', title='Financial Leverage', size='Financial Leverage', template='plotly_dark'), use_container_width=True)
 
         latest_year = df.index.max()
@@ -598,6 +584,7 @@ elif st.session_state.page == "eps_prediction":
                 'Year': ['Current', '2025 (Predicted)'],
                 'EPS': [eps, predicted_eps]
             })
+            st.write(eps_data)
             st.plotly_chart(px.bar(eps_data, x='Year', y='EPS', template='plotly_dark', color='Year'), use_container_width=True)
 
             st.info("""
@@ -606,6 +593,8 @@ elif st.session_state.page == "eps_prediction":
             - Ratios and features have been range-corrected to reduce bias.
             - Real outcomes can vary due to macro and company-specific shifts.
             """)
+        if st.button("⬅️ Back to Main Menu", key="leverage_back", use_container_width=True):
+                go_app()
 
     except Exception as e:
         st.error(f"Prediction error: {str(e)}")
@@ -621,10 +610,8 @@ elif st.session_state.page == "eps_prediction":
         """)
 
     st.write("")
-    if st.button("⬅️ Back to Main Menu", key="eps_back", use_container_width=True):
-        go_app()
 elif st.session_state.page=="beneish_m_score":
-    st.subheader("🔢Beneish-M-Score Overview")
+    st.subheader("Beneish-M-Score Overview")
     all_data=get_all_ticker_data(st.session_state.ticker)
     income_df, balance_df, cashflow_df, history_df=all_data['financials']
     if income_df.empty or balance_df.empty or cashflow_df.empty:
