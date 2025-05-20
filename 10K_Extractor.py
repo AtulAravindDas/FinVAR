@@ -22,9 +22,20 @@ if st.button("Download & Display 10-K Filing"):
                 if os.path.exists(full_path):
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                         filing_text = f.read()
-
-                    with st.expander("📄 View 10-K Filing"):
-                        st.text_area("Full 10-K Filing", filing_text, height=600)
+                    
+                    html_match = re.search(r'<html>.*?</html>', filing_text, re.DOTALL)
+                    if html_match:
+                        html_content = html_match.group(0)
+                        with st.expander("📄 View 10-K Filing"):
+                            st.components.v1.html(html_content, height=600)
+                    else:
+                        soup = BeautifulSoup(filing_text, 'html.parser')
+                        if soup.find('body'):
+                            with st.expander("📄 View 10-K Filing"):
+                                st.components.v1.html(str(soup), height=600)
+                        else:
+                            with st.expander("📄 View 10-K Filing (Raw Format)"):
+                                st.text_area("Full 10-K Filing", filing_text, height=600)
                 else:
                     st.warning("full-submission.txt not found inside filing folder.")
 
