@@ -1,6 +1,8 @@
 from sec_edgar_downloader import Downloader
 import streamlit as st
 import os
+import re
+from bs4 import BeautifulSoup
 
 st.title("📄 SEC EDGAR 10-K Filing Viewer")
 
