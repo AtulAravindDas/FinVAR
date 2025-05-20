@@ -8,5 +8,4 @@ plotly
 joblib
 finnhub-python
 sec_edgar_downloader
-re
 beautifulsoup4
