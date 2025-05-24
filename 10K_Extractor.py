@@ -28,8 +28,28 @@ if st.button("Download & Display 10-K Filing"):
                     html_match = re.search(r'<html>.*?</html>', filing_text, re.DOTALL)
                     if html_match:
                         html_content = html_match.group(0)
+                        sanitized_html = f"""
+                        <html>
+                        <head>
+                        <style>
+                            body {{
+                                background-color: white !important;
+                                color: black !important;
+                                font-family: Arial, sans-serif;
+                                line-height: 1.6;
+                            }}
+                            * {{
+                                background-color: white !important;
+                                color: black !important;
+                            }}
+                        </style>
+                        </head>
+                        <body>{html_content}</body>
+                        </html>
+                        """
                         with st.expander("📄 View 10-K Filing"):
-                            st.components.v1.html(html_content, height=600)
+                            st.components.v1.html(sanitized_html, height=600)
+
                     else:
                         soup = BeautifulSoup(filing_text, 'html.parser')
                         if soup.find('body'):
